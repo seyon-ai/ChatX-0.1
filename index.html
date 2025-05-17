@@ -193,6 +193,15 @@
             color: var(--text-glow);
         }
 
+        .message-image {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 5px;
+            margin: 10px 0 0 20px;
+            border: 1px solid var(--neon-purple);
+            box-shadow: 0 0 10px rgba(150, 0, 255, 0.3);
+        }
+
         .message-time {
             font-size: 0.8rem;
             color: rgba(224, 224, 255, 0.6);
@@ -207,6 +216,27 @@
 
         #messageInput {
             flex: 1;
+        }
+
+        .file-upload-label {
+            background: rgba(5, 240, 176, 0.2);
+            color: var(--neon-green);
+            padding: 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px dashed var(--neon-green);
+            transition: all 0.3s;
+        }
+
+        .file-upload-label:hover {
+            background: rgba(5, 240, 176, 0.3);
+        }
+
+        #fileInput {
+            display: none;
         }
 
         .typing-indicator {
@@ -259,6 +289,16 @@
         <div id="typingIndicator" class="typing-indicator"></div>
         <form id="messageForm">
             <input type="text" id="messageInput" placeholder="TRANSMIT MESSAGE..." autocomplete="off">
+            <label for="fileInput" class="file-upload-label" title="Upload Image">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"></path>
+                    <line x1="16" y1="5" x2="22" y2="5"></line>
+                    <line x1="19" y1="2" x2="19" y2="8"></line>
+                    <circle cx="9" cy="9" r="2"></circle>
+                    <path d="M21 15l-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path>
+                </svg>
+            </label>
+            <input type="file" id="fileInput" accept="image/*">
             <button type="submit" class="btn">SEND</button>
         </form>
     </div>
@@ -266,61 +306,213 @@
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
 
-     <script>
-    // Firebase Config (use your actual config)
-    const firebaseConfig = {
-        apiKey: "AIzaSyDaZ4phogHVYs1P5FxWgZ82xWYuhn40Jsk",
-        authDomain: "chatxo-273ae.firebaseapp.com",
-        databaseURL: "https://chatxo-273ae-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "chatxo-273ae",
-        storageBucket: "chatxo-273ae.firebasestorage.app",
-        messagingSenderId: "164084079084",
-        appId: "1:164084079084:web:db272d2eed61537fc9c8c9"
-    };
+    <script>
+        // Firebase Config (use your actual config)
+        const firebaseConfig = {
+            apiKey: "AIzaSyDaZ4phogHVYs1P5FxWgZ82xWYuhn40Jsk",
+            authDomain: "chatxo-273ae.firebaseapp.com",
+            databaseURL: "https://chatxo-273ae-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "chatxo-273ae",
+            storageBucket: "chatxo-273ae.appspot.com",
+            messagingSenderId: "164084079084",
+            appId: "1:164084079084:web:db272d2eed61537fc9c8c9"
+        };
 
-    // Initialize Firebase
-    const app = firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
-    const auth = firebase.auth();
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const storage = firebase.storage();
+        const auth = firebase.auth();
 
-    // Modified Connect Button Handler
-    enterChatButton.addEventListener('click', async () => {
-        const username = usernameInput.value.trim();
-        if (!username) {
-            alert('Please enter a username');
-            return;
-        }
+        // DOM Elements
+        const nameScreen = document.getElementById('nameScreen');
+        const chatScreen = document.getElementById('chatScreen');
+        const usernameInput = document.getElementById('usernameInput');
+        const enterChatButton = document.getElementById('enterChatButton');
+        const messagesContainer = document.getElementById('messages');
+        const messageForm = document.getElementById('messageForm');
+        const messageInput = document.getElementById('messageInput');
+        const fileInput = document.getElementById('fileInput');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const onlineCounter = document.querySelector('.online-counter');
 
-        try {
-            // First sign in anonymously
-            const { user } = await auth.signInAnonymously();
-            console.log("Anonymous user:", user.uid);
+        // Current user
+        let currentUser = null;
+
+        // Initialize connection
+        enterChatButton.addEventListener('click', async () => {
+            const username = usernameInput.value.trim();
+            if (!username) {
+                alert('CALLSIGN REQUIRED FOR ACCESS');
+                return;
+            }
+
+            try {
+                // Sign in anonymously (required by security rules)
+                const { user } = await auth.signInAnonymously();
+                console.log("Authenticated with UID:", user.uid);
+                
+                currentUser = {
+                    uid: user.uid,
+                    username: username
+                };
+
+                // Set user online status
+                await database.ref(`users/${user.uid}`).set({
+                    username: username,
+                    online: true,
+                    lastActive: firebase.database.ServerValue.TIMESTAMP
+                });
+
+                // Setup disconnect cleanup
+                database.ref(`users/${user.uid}`).onDisconnect().update({
+                    online: false,
+                    lastActive: firebase.database.ServerValue.TIMESTAMP
+                });
+
+                // Switch to chat view
+                nameScreen.classList.remove('active');
+                chatScreen.classList.add('active');
+                messageInput.focus();
+                loadMessages();
+                trackOnlineUsers();
+
+            } catch (error) {
+                console.error("Authentication failed:", error);
+                alert(`ACCESS DENIED: ${error.message}`);
+            }
+        });
+
+        // Message submission
+        messageForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const messageText = messageInput.value.trim();
             
-            // Then set username in database
-            await database.ref(`users/${user.uid}`).set({
-                username: username,
-                online: true,
-                lastActive: firebase.database.ServerValue.TIMESTAMP
-            });
+            if (messageText && currentUser) {
+                await sendMessage(messageText);
+                messageInput.value = '';
+            }
+        });
 
-            // Setup disconnect cleanup
-            database.ref(`users/${user.uid}`).onDisconnect().update({
-                online: false,
-                lastActive: firebase.database.ServerValue.TIMESTAMP
-            });
+        // File upload handler
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file && currentUser) {
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('IMAGE TOO LARGE (MAX 5MB)');
+                    return;
+                }
+                await uploadImage(file);
+                fileInput.value = '';
+            }
+        });
 
-            // Switch to chat screen
-            nameScreen.classList.remove('active');
-            chatScreen.classList.add('active');
-            loadMessages();
-
-        } catch (error) {
-            console.error("Auth error:", error);
-            alert("Connection error - check console for details");
+        // Load messages
+        function loadMessages() {
+            database.ref('messages')
+                .orderByChild('timestamp')
+                .limitToLast(100)
+                .on('child_added', (snapshot) => {
+                    if (!document.querySelector(`[data-id="${snapshot.key}"]`)) {
+                        displayMessage(snapshot.val(), snapshot.key);
+                    }
+                });
         }
-    });
-     </script>
+
+        // Display message
+        function displayMessage(message, messageId) {
+            const messageElement = document.createElement('div');
+            messageElement.className = 'message';
+            messageElement.setAttribute('data-id', messageId);
+            
+            let contentHTML = `
+                <div class="message-username">${message.username}</div>
+                <div class="message-time">${formatTime(message.timestamp)}</div>
+            `;
+
+            if (message.text) {
+                contentHTML += `<div class="message-text">${message.text}</div>`;
+            }
+
+            if (message.imageUrl) {
+                contentHTML += `<img class="message-image" src="${message.imageUrl}" loading="lazy">`;
+            }
+
+            messageElement.innerHTML = contentHTML;
+            messagesContainer.appendChild(messageElement);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Send text message
+        async function sendMessage(text) {
+            try {
+                await database.ref('messages').push({
+                    uid: currentUser.uid,
+                    username: currentUser.username,
+                    text: text,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                });
+            } catch (error) {
+                console.error("Message send failed:", error);
+                alert('MESSAGE TRANSMISSION FAILED');
+            }
+        }
+
+        // Upload image
+        async function uploadImage(file) {
+            try {
+                // Create storage reference
+                const storageRef = storage.ref();
+                const fileRef = storageRef.child(`chat_images/${currentUser.uid}_${Date.now()}_${file.name}`);
+                
+                // Upload file
+                const snapshot = await fileRef.put(file);
+                const downloadURL = await snapshot.ref.getDownloadURL();
+                
+                // Save message with image
+                await database.ref('messages').push({
+                    uid: currentUser.uid,
+                    username: currentUser.username,
+                    imageUrl: downloadURL,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                });
+
+            } catch (error) {
+                console.error("Image upload failed:", error);
+                alert('IMAGE UPLOAD FAILED');
+            }
+        }
+
+        // Track online users
+        function trackOnlineUsers() {
+            database.ref('users')
+                .orderByChild('online')
+                .equalTo(true)
+                .on('value', (snapshot) => {
+                    const count = snapshot.numChildren();
+                    onlineCounter.textContent = `${count} USERS ONLINE`;
+                });
+        }
+
+        // Format timestamp
+        function formatTime(timestamp) {
+            if (!timestamp) return '';
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // Cleanup on exit
+        window.addEventListener('beforeunload', () => {
+            if (currentUser) {
+                database.ref(`users/${currentUser.uid}`).update({
+                    online: false,
+                    lastActive: firebase.database.ServerValue.TIMESTAMP
+                });
+            }
+        });
+    </script>
 </body>
-</html>
+                    </html>
