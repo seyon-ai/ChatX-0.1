@@ -3,122 +3,268 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Firebase Chat App</title>
+    <title>Neon Chat</title>
     <style>
+        :root {
+            --primary: #6c5ce7;
+            --secondary: #a29bfe;
+            --dark: #2d3436;
+            --darker: #1e272e;
+            --light: #f5f6fa;
+            --accent: #fd79a8;
+            --success: #00b894;
+        }
+        
         * {
             box-sizing: border-box;
-            font-family: Arial, sans-serif;
-        }
-        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #f5f5f5;
+            transition: all 0.3s ease;
         }
+        
+        body {
+            background-color: var(--darker);
+            color: var(--light);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
         .screen {
+            width: 100%;
+            max-width: 500px;
+            background-color: var(--dark);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
             display: none;
-            max-width: 800px;
-            margin: 20px auto;
-            padding: 20px;
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeIn 0.5s forwards;
         }
+        
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
         .screen.active {
             display: block;
         }
-        #nameScreen {
-            text-align: center;
-        }
+        
         h1 {
-            color: #333;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            color: var(--primary);
+            font-weight: 600;
         }
+        
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+        
         input {
             width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--light);
+            font-size: 1rem;
+            margin-bottom: 1rem;
         }
-        button {
-            background-color: #4285f4;
+        
+        input:focus {
+            outline: 2px solid var(--primary);
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+        
+        .btn {
+            background-color: var(--primary);
             color: white;
             border: none;
-            padding: 10px 15px;
-            border-radius: 4px;
+            padding: 12px 24px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 1rem;
+            font-weight: 500;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
         }
-        button:hover {
-            background-color: #3367d6;
+        
+        .btn:hover {
+            background-color: var(--secondary);
+            transform: translateY(-2px);
         }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
         #messages {
             height: 400px;
             overflow-y: auto;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 10px;
-            margin-bottom: 10px;
+            padding: 1rem;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            scroll-behavior: smooth;
         }
+        
+        /* Custom scrollbar */
+        #messages::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        #messages::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+        
+        #messages::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 3px;
+        }
+        
         .message {
-            margin-bottom: 15px;
-            padding: 10px;
-            border-radius: 4px;
-            background-color: #f9f9f9;
+            margin-bottom: 1rem;
+            padding: 12px 16px;
+            border-radius: 12px;
+            background-color: rgba(255, 255, 255, 0.1);
+            animation: messageIn 0.3s ease-out;
         }
+        
+        @keyframes messageIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
         .message-username {
-            font-weight: bold;
-            color: #4285f4;
-            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--secondary);
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
+        
+        .message-username::before {
+            content: "";
+            display: block;
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent);
+            border-radius: 50%;
+        }
+        
         .message-text {
-            margin: 5px 0;
+            margin: 8px 0;
+            line-height: 1.5;
         }
+        
         .message-image {
             max-width: 100%;
             max-height: 200px;
-            border-radius: 4px;
-            margin-top: 5px;
+            border-radius: 8px;
+            margin-top: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
+        
+        .message-time {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.5);
+            text-align: right;
+            margin-top: 4px;
+        }
+        
         #messageForm {
             display: flex;
-            gap: 10px;
+            gap: 12px;
         }
+        
         #messageInput {
             flex-grow: 1;
+            margin-bottom: 0;
         }
+        
+        .file-upload-label {
+            background-color: var(--success);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .file-upload-label:hover {
+            background-color: #00a884;
+        }
+        
         #fileInput {
             display: none;
         }
-        .file-upload-label {
-            background-color: #34a853;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .file-upload-label:hover {
-            background-color: #2d8e47;
+        
+        .typing-indicator {
+            color: var(--secondary);
+            font-style: italic;
+            margin-bottom: 8px;
+            height: 20px;
         }
     </style>
 </head>
 <body>
     <!-- Name Screen -->
     <div id="nameScreen" class="screen active">
-        <h1>Welcome to Firebase Chat</h1>
-        <p>Please enter your username to continue</p>
-        <input type="text" id="usernameInput" placeholder="Your username">
-        <button id="enterChatButton">Enter Chat</button>
+        <h1>✨ Neon Chat ✨</h1>
+        <div class="input-group">
+            <input type="text" id="usernameInput" placeholder="Choose your username" autocomplete="off">
+        </div>
+        <button id="enterChatButton" class="btn">
+            <span>Enter Chat</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14M12 5l7 7-7 7"></path>
+            </svg>
+        </button>
     </div>
 
     <!-- Chat Screen -->
     <div id="chatScreen" class="screen">
-        <h1>Global Chat</h1>
+        <h1>💬 Global Chat</h1>
         <div id="messages"></div>
+        <div id="typingIndicator" class="typing-indicator"></div>
         <form id="messageForm">
-            <input type="text" id="messageInput" placeholder="Type your message...">
-            <label for="fileInput" class="file-upload-label">📷</label>
-            <input type="file" id="fileInput" accept="image/*">
-            <button type="submit">Send</button>
+            <input type="text" id="messageInput" placeholder="Type your message..." autocomplete="off">
+            <label for="fileInput" class="file-upload-label" title="Upload Image">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"></path>
+                    <line x1="16" y1="5" x2="22" y2="5"></line>
+                    <line x1="19" y1="2" x2="19" y2="8"></line>
+                    <circle cx="9" cy="9" r="2"></circle>
+                    <path d="M21 15l-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path>
+                </svg>
+            </label>
+            <button type="submit" class="btn">
+                <span>Send</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+            </button>
         </form>
     </div>
 
@@ -153,10 +299,13 @@
         const messageForm = document.getElementById('messageForm');
         const messageInput = document.getElementById('messageInput');
         const fileInput = document.getElementById('fileInput');
+        const typingIndicator = document.getElementById('typingIndicator');
 
         // Current user data
         let currentUser = {
-            username: ''
+            username: '',
+            isTyping: false,
+            lastTypingTime: 0
         };
 
         // Enter chat button click handler
@@ -166,9 +315,11 @@
                 currentUser.username = username;
                 nameScreen.classList.remove('active');
                 chatScreen.classList.add('active');
+                messageInput.focus();
                 loadMessages();
+                setupTypingIndicator();
             } else {
-                alert('Please enter a username');
+                showError("Please enter a username");
             }
         });
 
@@ -186,21 +337,38 @@
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
+                if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                    showError("Image size should be less than 5MB");
+                    return;
+                }
                 uploadImage(file);
             }
         });
 
+        // Typing detection
+        messageInput.addEventListener('input', () => {
+            updateTypingStatus(true);
+        });
+
+        function showError(message) {
+            const errorEl = document.createElement('div');
+            errorEl.className = 'message';
+            errorEl.style.backgroundColor = 'rgba(255, 107, 107, 0.2)';
+            errorEl.style.borderLeft = '4px solid #ff6b6b';
+            errorEl.innerHTML = `
+                <div class="message-username">System</div>
+                <div class="message-text">${message}</div>
+            `;
+            messagesContainer.appendChild(errorEl);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
         // Load messages from Firebase
         function loadMessages() {
-            const messagesRef = database.ref('messages');
-            messagesRef.on('value', (snapshot) => {
-                messagesContainer.innerHTML = '';
-                const messages = snapshot.val();
-                if (messages) {
-                    Object.values(messages).forEach(message => {
-                        displayMessage(message);
-                    });
-                }
+            const messagesRef = database.ref('messages').orderByChild('timestamp');
+            messagesRef.on('child_added', (snapshot) => {
+                const message = snapshot.val();
+                displayMessage(message);
             });
         }
 
@@ -226,44 +394,120 @@
                 const imageElement = document.createElement('img');
                 imageElement.className = 'message-image';
                 imageElement.src = message.imageUrl;
+                imageElement.loading = 'lazy';
                 messageElement.appendChild(imageElement);
+            }
+
+            // Add timestamp
+            if (message.timestamp) {
+                const timeElement = document.createElement('div');
+                timeElement.className = 'message-time';
+                timeElement.textContent = formatTime(message.timestamp);
+                messageElement.appendChild(timeElement);
             }
 
             messagesContainer.appendChild(messageElement);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
 
+        // Format timestamp
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
         // Send a text message to Firebase
         function sendMessage(text) {
+            updateTypingStatus(false);
+            
             const message = {
                 username: currentUser.username,
                 text: text,
                 timestamp: firebase.database.ServerValue.TIMESTAMP
             };
 
-            database.ref('messages').push(message);
+            database.ref('messages').push(message)
+                .catch(error => {
+                    showError("Failed to send message");
+                    console.error("Error sending message:", error);
+                });
         }
 
-        // Upload an image to Firebase Storage and send the URL to Firebase Database
+        // Upload an image to Firebase Storage
         function uploadImage(file) {
             const storageRef = storage.ref();
-            const fileRef = storageRef.child('chat_images/' + Date.now() + '_' + file.name);
+            const fileRef = storageRef.child(`chat_images/${Date.now()}_${file.name}`);
             
-            fileRef.put(file).then((snapshot) => {
-                return snapshot.ref.getDownloadURL();
-            }).then((downloadURL) => {
-                const message = {
-                    username: currentUser.username,
-                    imageUrl: downloadURL,
-                    timestamp: firebase.database.ServerValue.TIMESTAMP
-                };
-                database.ref('messages').push(message);
-                fileInput.value = '';
-            }).catch((error) => {
-                console.error('Error uploading image:', error);
-                alert('Error uploading image. Please try again.');
+            const uploadTask = fileRef.put(file);
+            
+            uploadTask.on('state_changed',
+                (snapshot) => {
+                    // Progress tracking could be added here
+                },
+                (error) => {
+                    showError("Error uploading image");
+                    console.error("Upload error:", error);
+                },
+                () => {
+                    uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+                        const message = {
+                            username: currentUser.username,
+                            imageUrl: downloadURL,
+                            timestamp: firebase.database.ServerValue.TIMESTAMP
+                        };
+                        database.ref('messages').push(message);
+                        fileInput.value = '';
+                    });
+                }
+            );
+        }
+
+        // Typing indicator functions
+        function setupTypingIndicator() {
+            database.ref('typing').on('child_changed', (snapshot) => {
+                const data = snapshot.val();
+                if (data.username !== currentUser.username && data.isTyping) {
+                    typingIndicator.textContent = `${data.username} is typing...`;
+                } else {
+                    typingIndicator.textContent = '';
+                }
+            });
+            
+            database.ref('typing').on('child_removed', () => {
+                typingIndicator.textContent = '';
             });
         }
+
+        function updateTypingStatus(isTyping) {
+            currentUser.isTyping = isTyping;
+            currentUser.lastTypingTime = Date.now();
+            
+            if (isTyping) {
+                database.ref(`typing/${currentUser.username}`).set({
+                    username: currentUser.username,
+                    isTyping: true,
+                    timestamp: currentUser.lastTypingTime
+                });
+                
+                // Set timeout to stop typing indicator after 3 seconds
+                setTimeout(() => {
+                    if (Date.now() - currentUser.lastTypingTime >= 3000) {
+                        database.ref(`typing/${currentUser.username}`).update({
+                            isTyping: false
+                        });
+                    }
+                }, 3000);
+            } else {
+                database.ref(`typing/${currentUser.username}`).update({
+                    isTyping: false
+                });
+            }
+        }
+
+        // Handle beforeunload to clean up typing status
+        window.addEventListener('beforeunload', () => {
+            database.ref(`typing/${currentUser.username}`).remove();
+        });
     </script>
 </body>
-</html>
+    </html>
