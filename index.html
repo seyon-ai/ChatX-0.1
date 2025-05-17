@@ -3,93 +3,326 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Firebase Chat</title>
+    <title>ChatX</title>
     <style>
+        :root {
+            --neon-blue: #0ff0fc;
+            --neon-purple: #9600ff;
+            --dark-bg: #0a0a12;
+            --darker-bg: #050508;
+            --panel-bg: #121220;
+            --text-primary: #e0e0ff;
+            --text-secondary: #a0a0c0;
+            --accent-red: #ff2a6d;
+            --accent-green: #05f0b0;
+        }
+
         * {
             box-sizing: border-box;
-            font-family: Arial, sans-serif;
-        }
-        body {
+            font-family: 'Courier New', monospace;
             margin: 0;
-            padding: 20px;
-            background-color: #f0f2f5;
+            padding: 0;
         }
-        #nameScreen, #chatScreen {
-            max-width: 600px;
-            margin: 0 auto;
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-image: 
+                radial-gradient(circle at 25% 25%, rgba(150, 0, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(0, 240, 252, 0.1) 0%, transparent 50%);
         }
-        #chatScreen {
+
+        .screen {
+            width: 100%;
+            max-width: 800px;
+            background-color: var(--panel-bg);
+            border-radius: 8px;
+            padding: 2rem;
+            box-shadow: 0 0 20px rgba(0, 240, 252, 0.1);
+            border: 1px solid rgba(150, 0, 255, 0.3);
             display: none;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeIn 0.5s forwards;
+            position: relative;
+            overflow: hidden;
         }
+
+        .screen::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--neon-purple), var(--neon-blue));
+            box-shadow: 0 0 10px var(--neon-blue);
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            color: var(--neon-blue);
+            font-weight: 700;
+            text-shadow: 0 0 10px rgba(0, 240, 252, 0.5);
+            letter-spacing: 2px;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid rgba(150, 0, 255, 0.5);
+            border-radius: 4px;
+            background-color: rgba(10, 10, 20, 0.8);
+            color: var(--text-primary);
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        input:focus {
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 10px rgba(0, 240, 252, 0.3);
+            background-color: rgba(20, 20, 40, 0.8);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--neon-purple), var(--neon-blue));
+            color: var(--darker-bg);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            width: 100%;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                to bottom right,
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0.1) 50%,
+                rgba(255, 255, 255, 0) 100%
+            );
+            transform: rotate(30deg);
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            box-shadow: 0 0 15px rgba(0, 240, 252, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .btn:hover::after {
+            left: 100%;
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
         #messages {
             height: 400px;
             overflow-y: auto;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            padding: 10px;
-            margin-bottom: 10px;
+            padding: 1rem;
+            background-color: rgba(10, 10, 20, 0.5);
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(150, 0, 255, 0.2);
+            scroll-behavior: smooth;
         }
+
+        #messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #messages::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+        }
+
+        #messages::-webkit-scrollbar-thumb {
+            background: var(--neon-purple);
+            border-radius: 3px;
+        }
+
         .message {
-            margin-bottom: 15px;
-            padding: 10px;
-            background: #f8f9fa;
-            border-radius: 5px;
+            margin-bottom: 1rem;
+            padding: 12px 16px;
+            border-radius: 4px;
+            background-color: rgba(20, 20, 40, 0.7);
+            border-left: 3px solid var(--neon-blue);
+            animation: messageIn 0.3s ease-out;
+            position: relative;
         }
+
+        .message::before {
+            content: '>';
+            position: absolute;
+            left: 5px;
+            top: 12px;
+            color: var(--neon-blue);
+            font-weight: bold;
+        }
+
+        @keyframes messageIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
         .message-username {
             font-weight: bold;
-            color: #2d3436;
+            color: var(--accent-green);
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
+
         .message-text {
-            margin: 5px 0;
+            margin: 8px 0 8px 15px;
+            line-height: 1.5;
+            color: var(--text-primary);
         }
+
+        .message-time {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-align: right;
+            margin-top: 4px;
+            font-family: 'Courier New', monospace;
+        }
+
         #messageForm {
             display: flex;
             gap: 10px;
         }
+
         #messageInput {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
+            flex-grow: 1;
+            margin-bottom: 0;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 1px;
         }
-        button {
-            background: #0984e3;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
+
+        .typing-indicator {
+            color: var(--accent-green);
+            font-style: italic;
+            margin-bottom: 8px;
+            height: 20px;
+            font-size: 0.9rem;
+            padding-left: 10px;
+        }
+
+        .status-led {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--accent-red);
+            margin-right: 5px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.3; }
+            50% { opacity: 1; }
+            100% { opacity: 0.3; }
+        }
+
+        .online-count {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+        }
+
+        .online-count::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--accent-green);
+            margin-right: 5px;
+            box-shadow: 0 0 5px var(--accent-green);
         }
     </style>
 </head>
 <body>
     <!-- Name Screen -->
-    <div id="nameScreen">
-        <h1>Welcome to Chat</h1>
-        <input type="text" id="usernameInput" placeholder="Enter your username">
-        <button id="enterChatButton">Enter Chat</button>
+    <div id="nameScreen" class="screen active">
+        <h1>CHAT<span style="color: var(--accent-red)">X</span></h1>
+        <div class="input-group">
+            <input type="text" id="usernameInput" placeholder="ENTER USERNAME" autocomplete="off">
+        </div>
+        <button id="enterChatButton" class="btn">
+            <span>CONNECT</span>
+        </button>
     </div>
 
     <!-- Chat Screen -->
-    <div id="chatScreen">
-        <h1>Global Chat</h1>
+    <div id="chatScreen" class="screen">
+        <h1>CHAT<span style="color: var(--accent-red)">X</span> GLOBAL</h1>
+        <div class="online-count">0 USERS ONLINE</div>
         <div id="messages"></div>
+        <div id="typingIndicator" class="typing-indicator"></div>
         <form id="messageForm">
-            <input type="text" id="messageInput" placeholder="Type your message..." autocomplete="off">
-            <button type="submit">Send</button>
+            <input type="text" id="messageInput" placeholder="TYPE MESSAGE..." autocomplete="off">
+            <button type="submit" class="btn">
+                <span>SEND</span>
+            </button>
         </form>
     </div>
 
-    <!-- Firebase SDK -->
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
 
     <script>
-        // Your Firebase Config (replace with your actual config)
+        // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyD-EXAMPLE-KEY",
             authDomain: "your-project-id.firebaseapp.com",
@@ -100,7 +333,7 @@
             appId: "1:1234567890:web:abcdefgh12345678"
         };
 
-        // Initialize Firebase (only Database)
+        // Initialize Firebase
         const app = firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
@@ -112,25 +345,47 @@
         const messagesContainer = document.getElementById('messages');
         const messageForm = document.getElementById('messageForm');
         const messageInput = document.getElementById('messageInput');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const onlineCount = document.querySelector('.online-count');
 
-        // Current User
-        let currentUser = { username: '' };
+        // Current user data
+        let currentUser = {
+            username: '',
+            isTyping: false,
+            lastTypingTime: 0,
+            connected: false
+        };
 
-        // Enter Chat
+        // Enter chat button click handler
         enterChatButton.addEventListener('click', () => {
             const username = usernameInput.value.trim();
             if (username) {
                 currentUser.username = username;
-                nameScreen.style.display = 'none';
-                chatScreen.style.display = 'block';
+                nameScreen.classList.remove('active');
+                chatScreen.classList.add('active');
                 messageInput.focus();
+                
+                // Set user as online
+                const userRef = database.ref('users/' + currentUser.username);
+                userRef.set({
+                    online: true,
+                    lastActive: firebase.database.ServerValue.TIMESTAMP
+                });
+                
+                userRef.onDisconnect().update({
+                    online: false,
+                    lastActive: firebase.database.ServerValue.TIMESTAMP
+                });
+                
                 loadMessages();
+                setupTypingIndicator();
+                trackOnlineUsers();
             } else {
-                alert('Please enter a username');
+                alert('USERNAME REQUIRED');
             }
         });
 
-        // Send Message
+        // Message form submit handler
         messageForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const messageText = messageInput.value.trim();
@@ -140,7 +395,12 @@
             }
         });
 
-        // Load Messages
+        // Typing detection
+        messageInput.addEventListener('input', () => {
+            updateTypingStatus(true);
+        });
+
+        // Load messages from Firebase
         function loadMessages() {
             const messagesRef = database.ref('messages').orderByChild('timestamp');
             
@@ -159,7 +419,7 @@
             });
         }
 
-        // Display Message
+        // Display a message in the chat
         function displayMessage(message, messageId) {
             if (!messageId || document.querySelector(`[data-id="${messageId}"]`)) return;
             
@@ -168,28 +428,102 @@
             messageElement.setAttribute('data-id', messageId);
             
             messageElement.innerHTML = `
-                <div class="message-username">${message.username}</div>
+                <div class="message-username">
+                    <span class="status-led"></span>
+                    ${message.username}
+                </div>
                 <div class="message-text">${message.text}</div>
+                <div class="message-time">${formatTime(message.timestamp)}</div>
             `;
             
             messagesContainer.appendChild(messageElement);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
 
-        // Send Message to Firebase
+        // Format timestamp
+        function formatTime(timestamp) {
+            if (!timestamp) return '';
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // Send a text message to Firebase
         function sendMessage(text) {
+            updateTypingStatus(false);
+            
             const message = {
                 username: currentUser.username,
                 text: text,
                 timestamp: firebase.database.ServerValue.TIMESTAMP
             };
-            
+
             database.ref('messages').push(message)
-                .catch((error) => {
-                    console.error("Error sending message:", error);
-                    alert("Failed to send message");
+                .catch(error => {
+                    console.error("ERROR SENDING MESSAGE:", error);
                 });
         }
+
+        // Typing indicator functions
+        function setupTypingIndicator() {
+            database.ref('typing').on('child_changed', (snapshot) => {
+                const data = snapshot.val();
+                if (data.username !== currentUser.username && data.isTyping) {
+                    typingIndicator.textContent = `${data.username} IS TYPING...`;
+                } else {
+                    typingIndicator.textContent = '';
+                }
+            });
+            
+            database.ref('typing').on('child_removed', () => {
+                typingIndicator.textContent = '';
+            });
+        }
+
+        function updateTypingStatus(isTyping) {
+            currentUser.isTyping = isTyping;
+            currentUser.lastTypingTime = Date.now();
+            
+            if (isTyping) {
+                database.ref(`typing/${currentUser.username}`).set({
+                    username: currentUser.username,
+                    isTyping: true,
+                    timestamp: currentUser.lastTypingTime
+                });
+                
+                // Set timeout to stop typing indicator after 3 seconds
+                setTimeout(() => {
+                    if (Date.now() - currentUser.lastTypingTime >= 3000) {
+                        database.ref(`typing/${currentUser.username}`).update({
+                            isTyping: false
+                        });
+                    }
+                }, 3000);
+            } else {
+                database.ref(`typing/${currentUser.username}`).update({
+                    isTyping: false
+                });
+            }
+        }
+
+        // Track online users
+        function trackOnlineUsers() {
+            database.ref('users').orderByChild('online').equalTo(true).on('value', (snapshot) => {
+                const users = snapshot.val() || {};
+                const count = Object.keys(users).length;
+                onlineCount.textContent = `${count} USERS ONLINE`;
+            });
+        }
+
+        // Clean up on page unload
+        window.addEventListener('beforeunload', () => {
+            if (currentUser.username) {
+                database.ref(`typing/${currentUser.username}`).remove();
+                database.ref(`users/${currentUser.username}`).update({
+                    online: false,
+                    lastActive: firebase.database.ServerValue.TIMESTAMP
+                });
+            }
+        });
     </script>
 </body>
-</html>
+                </html>
