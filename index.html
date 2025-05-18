@@ -1,51 +1,99 @@
 <!DOCTYPE html><html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>ChatXO - Global Chat</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ChatX - Neon Chat</title>
   <style>
-    body {
+    * {
       margin: 0;
-      font-family: Arial, sans-serif;
-      background-color: #0f0f0f;
-      color: #00ffcc;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
-    #nameScreen, #chatScreen {
-      display: none;
+    body {
+      background: #0f0f0f;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+    #loginPage, #chatPage {
+      width: 100%;
+      max-width: 500px;
       padding: 20px;
+      display: none;
     }
-    .neon {
-      text-shadow: 0 0 5px #00ffe7, 0 0 10px #00ffe7, 0 0 20px #00ffe7;
+    #loginPage.active, #chatPage.active {
+      display: block;
     }
-    #messages {
-      height: 400px;
-      overflow-y: auto;
-      background-color: #1a1a1a;
-      border: 1px solid #00ffcc;
-      padding: 10px;
-      margin-bottom: 10px;
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #00ffff;
+      text-shadow: 0 0 5px #0ff;
     }
     input, button {
-      padding: 10px;
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
       border: none;
-      outline: none;
-      margin: 5px;
-      background-color: #00ffcc;
-      color: black;
-      font-weight: bold;
+      border-radius: 8px;
+      background: #1a1a1a;
+      color: #0ff;
+      font-size: 1em;
+    }
+    button {
+      background: #0ff;
+      color: #000;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    button:hover {
+      background: #00cccc;
+    }
+    #messages {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #0ff;
+      border-radius: 8px;
+      padding: 10px;
+      background: #121212;
+      margin-bottom: 10px;
+    }
+    .msg {
+      margin-bottom: 8px;
+      padding: 8px;
+      background: #222;
+      border-left: 4px solid #0ff;
+      border-radius: 4px;
+    }
+    .msg strong {
+      color: #0ff;
     }
   </style>
 </head>
 <body>
-  <div id="nameScreen">
-    <h2 class="neon">Enter a temporary username:</h2>
-    <input type="text" id="usernameInput" placeholder="Your name...">
-    <button onclick="startChat()">Start Chat</button>
-  </div>  <div id="chatScreen">
-    <h2 class="neon">ChatXO - Global Chat <span id="onlineCount"></span></h2>
+  <div id="loginPage" class="active">
+    <h1>Enter Your Name</h1>
+    <input type="text" id="usernameInput" placeholder="Your name..." />
+    <button onclick="enterChat()">Continue</button>
+  </div>  <div id="chatPage">
+    <h1>ChatX Global</h1>
     <div id="messages"></div>
-    <input type="text" id="messageInput" placeholder="Type a message...">
+    <input type="text" id="messageInput" placeholder="Type your message..." />
     <button onclick="sendMessage()">Send</button>
-  </div>  <!-- Firebase -->  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>  <script>
+  </div>  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getDatabase,
+      ref,
+      push,
+      set,
+      onChildAdded
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
     const firebaseConfig = {
       apiKey: "AIzaSyDaZ4phogHVYs1P5FxWgZ82xWYuhn40Jsk",
       authDomain: "chatxo-273ae.firebaseapp.com",
@@ -55,58 +103,49 @@
       messagingSenderId: "164084079084",
       appId: "1:164084079084:web:db272d2eed61537fc9c8c9"
     };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
     let username = "";
-    const usersRef = db.ref("usersOnline");
-    const messagesRef = db.ref("messages");
 
-    function startChat() {
-      username = document.getElementById("usernameInput").value.trim();
-      if (!username) return alert("Enter a name");
-
-      document.getElementById("nameScreen").style.display = "none";
-      document.getElementById("chatScreen").style.display = "block";
-
-      const userKey = usersRef.push(username).key;
-      usersRef.onDisconnect().child(userKey).remove();
-
-      loadMessages();
-      updateOnlineCount();
+    function enterChat() {
+      const nameInput = document.getElementById("usernameInput");
+      if (nameInput.value.trim() !== "") {
+        username = nameInput.value.trim();
+        document.getElementById("loginPage").classList.remove("active");
+        document.getElementById("chatPage").classList.add("active");
+      }
     }
 
-    function loadMessages() {
-      messagesRef.limitToLast(100).on("child_added", snapshot => {
-        const msg = snapshot.val();
-        const msgBox = document.createElement("div");
-        msgBox.innerHTML = `<strong>${msg.name}:</strong> ${msg.text}`;
-        document.getElementById("messages").appendChild(msgBox);
-        document.getElementById("messages").scrollTop = document.getElementById("messages").scrollHeight;
-      });
-    }
+    window.enterChat = enterChat;
 
     function sendMessage() {
-      const text = document.getElementById("messageInput").value.trim();
-      if (!text) return;
-
-      messagesRef.push({
-        name: username,
-        text: text
-      });
-
-      document.getElementById("messageInput").value = "";
+      const msgInput = document.getElementById("messageInput");
+      const text = msgInput.value.trim();
+      if (text !== "") {
+        const msgRef = ref(db, "messages");
+        const newMsgRef = push(msgRef);
+        set(newMsgRef, {
+          name: username,
+          text: text,
+          timestamp: Date.now()
+        });
+        msgInput.value = "";
+      }
     }
 
-    function updateOnlineCount() {
-      usersRef.on("value", snap => {
-        const count = snap.numChildren();
-        document.getElementById("onlineCount").innerText = `(${count} online)`;
-      });
-    }
+    window.sendMessage = sendMessage;
 
-    window.onload = () => {
-      document.getElementById("nameScreen").style.display = "block";
-    };
+    const messagesDiv = document.getElementById("messages");
+
+    onChildAdded(ref(db, "messages"), (snapshot) => {
+      const msg = snapshot.val();
+      const msgElem = document.createElement("div");
+      msgElem.className = "msg";
+      msgElem.innerHTML = `<strong>${msg.name}:</strong> ${msg.text}`;
+      messagesDiv.appendChild(msgElem);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    });
   </script></body>
 </html>
