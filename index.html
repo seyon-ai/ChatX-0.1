@@ -1,7 +1,8 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>ChatX - Neon Chat</title>
   <style>
     * {
@@ -12,27 +13,25 @@
     }
     body {
       background: #0f0f0f;
-      color: #fff;
+      color: #0ff;
       display: flex;
-      flex-direction: column;
+      justify-content: center;
       align-items: center;
       height: 100vh;
-      overflow: hidden;
     }
     #loginPage, #chatPage {
+      display: none;
       width: 100%;
       max-width: 600px;
       padding: 20px;
-      display: none;
     }
     #loginPage.active, #chatPage.active {
       display: block;
     }
     h1 {
       text-align: center;
-      margin-bottom: 20px;
       color: #00ffff;
-      text-shadow: 0 0 5px #0ff;
+      text-shadow: 0 0 10px #0ff;
     }
     input, button {
       width: 100%;
@@ -48,263 +47,180 @@
       background: #0ff;
       color: #000;
       cursor: pointer;
-      transition: 0.3s;
     }
-    button:hover {
-      background: #00cccc;
-    }
-    #messages, #privateMessages {
-      max-height: 300px;
+    #messages {
+      height: 300px;
       overflow-y: auto;
       border: 1px solid #0ff;
-      border-radius: 8px;
       padding: 10px;
       background: #121212;
       margin-bottom: 10px;
     }
     .msg {
       margin-bottom: 8px;
-      padding: 8px;
       background: #222;
       border-left: 4px solid #0ff;
+      padding: 8px;
       border-radius: 4px;
     }
     .msg strong {
       color: #0ff;
     }
-    #usersList div {
-      padding: 6px;
-      border-bottom: 1px solid #0ff;
-      cursor: pointer;
-    }
-    #usersList div:hover {
+    #onlineUsers {
+      margin: 10px 0;
+      padding: 10px;
+      border: 1px solid #0ff;
       background: #1a1a1a;
     }
-    #privateChatBox {
-      display: none;
-      border-left: 2px solid #0ff;
-      padding-left: 10px;
+    .user {
+      padding: 5px;
+      cursor: pointer;
     }
-    #reportPopup {
-      display: none;
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: #111;
-      border: 2px solid #0ff;
-      padding: 20px;
-      border-radius: 10px;
-      color: #fff;
-      z-index: 1000;
-    }
-    #typingIndicator {
-      font-size: 0.9em;
-      color: #aaa;
-      margin-bottom: 5px;
+    .user:hover {
+      background: #333;
     }
   </style>
 </head>
 <body>
-  <div id="loginPage" class="active">
-    <h1>Enter Your Name</h1>
-    <input type="text" id="usernameInput" placeholder="Your name..." />
-    <button onclick="enterChat()">Continue</button>
-  </div>
-  <div id="chatPage">
-    <h1>ChatX Global</h1>
-    <p id="onlineCount">Online: 0</p>
-    <div id="typingIndicator"></div>
-    <div id="messages"></div>
-    <input type="text" id="messageInput" placeholder="Type your message..." oninput="sendTypingStatus()" />
-    <button onclick="sendMessage()">Send</button>
-    <div id="usersList"></div>
-    <div id="privateChatBox">
-      <h3>Private Chat with <span id="privateUser"></span></h3>
-      <div id="privateMessages"></div>
-      <input type="text" id="privateMessageInput" placeholder="Type a private message..." />
-      <button onclick="sendPrivateMessage()">Send</button>
-    </div>
-  </div>
-  <div id="reportPopup">
-    <h3>Report User</h3>
-    <p>Email abuse to: abussprotocolwdev@gmail.com</p>
-    <button onclick="closeReportPopup()">Close</button>
-  </div>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import {
-      getDatabase,
-      ref,
-      push,
-      set,
-      onChildAdded,
-      onValue,
-      update,
-      remove
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-    import {
-      getAuth,
-      signInAnonymously,
-      onAuthStateChanged
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";const firebaseConfig = {
-  apiKey: "AIzaSyDaZ4phogHVYs1P5FxWgZ82xWYuhn40Jsk",
-  authDomain: "chatxo-273ae.firebaseapp.com",
-  databaseURL: "https://chatxo-273ae-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "chatxo-273ae",
-  storageBucket: "chatxo-273ae.appspot.com",
-  messagingSenderId: "164084079084",
-  appId: "1:164084079084:web:db272d2eed61537fc9c8c9"
-};
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-const auth = getAuth();
+<div id="loginPage" class="active">
+  <h1>Enter Your Username</h1>
+  <input type="text" id="usernameInput" placeholder="Your name..." />
+  <button onclick="enterChat()">Login</button>
+</div>
 
-let currentUser = null;
-let username = localStorage.getItem('chatx_username') || "";
-let typingTimeout;
+<div id="chatPage">
+  <h1>ChatX - Global Chat</h1>
+  <div id="onlineUsers"></div>
+  <div id="messages"></div>
+  <input type="text" id="messageInput" placeholder="Type a message..." />
+  <button onclick="sendMessage()">Send</button>
+</div>
 
-function enterChat() {
-  const nameInput = document.getElementById("usernameInput").value.trim();
-  if (nameInput !== "") {
-    username = nameInput;
-    localStorage.setItem('chatx_username', username);
-    signInAnonymously(auth).then(() => {
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import {
+    getDatabase,
+    ref,
+    push,
+    set,
+    onChildAdded,
+    onDisconnect,
+    remove,
+    serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  import {
+    getAuth,
+    signInAnonymously,
+    onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDaZ4phogHVYs1P5FxWgZ82xWYuhn40Jsk",
+    authDomain: "chatxo-273ae.firebaseapp.com",
+    databaseURL: "https://chatxo-273ae-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "chatxo-273ae",
+    storageBucket: "chatxo-273ae.appspot.com",
+    messagingSenderId: "164084079084",
+    appId: "1:164084079084:web:db272d2eed61537fc9c8c9"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const auth = getAuth(app);
+
+  let username = "";
+  let userId = "";
+
+  // login and anonymous auth
+  function enterChat() {
+    const name = document.getElementById("usernameInput").value.trim();
+    if (!name) return;
+
+    username = name;
+    signInAnonymously(auth).catch(console.error);
+  }
+
+  window.enterChat = enterChat;
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      userId = user.uid;
       document.getElementById("loginPage").classList.remove("active");
       document.getElementById("chatPage").classList.add("active");
+
+      // Show online
+      const userRef = ref(db, "online/" + userId);
+      set(userRef, { name: username, timestamp: serverTimestamp() });
+      onDisconnect(userRef).remove();
+
+      listenForMessages();
+      listenForOnlineUsers();
+    }
+  });
+
+  // sending message
+  function sendMessage() {
+    const msgInput = document.getElementById("messageInput");
+    const text = msgInput.value.trim();
+    if (!text) return;
+
+    const msgRef = ref(db, "messages");
+    const newMsg = push(msgRef);
+    set(newMsg, {
+      name: username,
+      text,
+      timestamp: Date.now()
     });
+
+    msgInput.value = "";
   }
-}
 
-window.enterChat = enterChat;
+  window.sendMessage = sendMessage;
 
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    currentUser = user;
-    const userRef = ref(db, `users/${currentUser.uid}`);
-    set(userRef, { name: username });
-
-    onValue(ref(db, 'users'), (snapshot) => {
-      const usersList = document.getElementById("usersList");
-      usersList.innerHTML = "<h3>Online Users</h3>";
-      let count = 0;
-      snapshot.forEach(child => {
-        count++;
-        if (child.key !== currentUser.uid) {
-          const div = document.createElement("div");
-          div.textContent = child.val().name;
-          div.addEventListener("contextmenu", (e) => {
-            e.preventDefault();
-            showUserOptions(child.key, child.val().name);
-          });
-          usersList.appendChild(div);
-        }
-      });
-      document.getElementById("onlineCount").textContent = `Online: ${count}`;
-    });
+  function listenForMessages() {
+    const messagesDiv = document.getElementById("messages");
+    messagesDiv.innerHTML = "";
 
     onChildAdded(ref(db, "messages"), (snapshot) => {
       const msg = snapshot.val();
-      if (msg.uid !== currentUser.uid) {
-        addMessage(msg.name, msg.text);
-      }
+      const msgElem = document.createElement("div");
+      msgElem.className = "msg";
+      msgElem.innerHTML = `<strong>${msg.name}:</strong> ${msg.text}`;
+      messagesDiv.appendChild(msgElem);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
     });
   }
-});
 
-function sendMessage() {
-  const input = document.getElementById("messageInput");
-  const text = input.value.trim();
-  if (text) {
-    const msgRef = push(ref(db, "messages"));
-    set(msgRef, {
-      uid: currentUser.uid,
-      name: username,
-      text,
-      timestamp: Date.now()
+  function listenForOnlineUsers() {
+    const usersDiv = document.getElementById("onlineUsers");
+    usersDiv.innerHTML = "<strong>Online Users:</strong>";
+
+    onChildAdded(ref(db, "online"), (snap) => {
+      const data = snap.val();
+      const userElem = document.createElement("div");
+      userElem.className = "user";
+      userElem.textContent = data.name;
+
+      userElem.addEventListener("contextmenu", (e) => {
+        e.preventDefault();
+        showOptions(data.name);
+      });
+
+      usersDiv.appendChild(userElem);
     });
-    input.value = "";
-    document.getElementById("messages").scrollTop = document.getElementById("messages").scrollHeight;
   }
-}
 
-window.sendMessage = sendMessage;
-
-function addMessage(name, text) {
-  const div = document.createElement("div");
-  div.className = "msg";
-  div.innerHTML = `<strong>${name}:</strong> ${text}`;
-  const messagesDiv = document.getElementById("messages");
-  messagesDiv.appendChild(div);
-  messagesDiv.scrollTop = messagesDiv.scrollHeight;
-}
-
-function sendTypingStatus() {
-  clearTimeout(typingTimeout);
-  set(ref(db, `typing/${currentUser.uid}`), username);
-  typingTimeout = setTimeout(() => remove(ref(db, `typing/${currentUser.uid}`)), 3000);
-}
-
-onValue(ref(db, 'typing'), (snapshot) => {
-  let typingUsers = [];
-  snapshot.forEach(child => {
-    if (child.key !== currentUser.uid) {
-      typingUsers.push(child.val());
+  function showOptions(name) {
+    const choice = prompt(`Options for ${name}:\n1. Chat with ${name}\n2. React\n3. Report`);
+    if (choice === "3") {
+      alert("Report sent to abussprotocolwdev@gmail.com");
+    } else if (choice === "1") {
+      alert("Private chat feature is coming soon!");
     }
-  });
-  document.getElementById("typingIndicator").textContent = typingUsers.length
-    ? `${typingUsers.join(", ")} is typing...`
-    : "";
-});
-
-function showUserOptions(uid, name) {
-  const options = confirm(`Options:\n1. Chat with ${name}\n2. React\n3. Report`);
-  if (options) openPrivateChat(uid, name);
-}
-
-function openPrivateChat(uid, name) {
-  document.getElementById("privateUser").textContent = name;
-  document.getElementById("privateChatBox").style.display = "block";
-  const privateMessagesDiv = document.getElementById("privateMessages");
-  privateMessagesDiv.innerHTML = "";
-
-  onChildAdded(ref(db, `private/${getPrivateKey(currentUser.uid, uid)}`), (snapshot) => {
-    const msg = snapshot.val();
-    const div = document.createElement("div");
-    div.className = "msg";
-    div.innerHTML = `<strong>${msg.name}:</strong> ${msg.text}`;
-    privateMessagesDiv.appendChild(div);
-    privateMessagesDiv.scrollTop = privateMessagesDiv.scrollHeight;
-  });
-}
-
-function getPrivateKey(uid1, uid2) {
-  return uid1 < uid2 ? `${uid1}_${uid2}` : `${uid2}_${uid1}`;
-}
-
-function sendPrivateMessage() {
-  const input = document.getElementById("privateMessageInput");
-  const text = input.value.trim();
-  const uid = Object.keys(currentUser.providerData)[0]; // current chat partner assumed tracked
-  if (text) {
-    const refKey = getPrivateKey(currentUser.uid, uid);
-    const msgRef = push(ref(db, `private/${refKey}`));
-    set(msgRef, {
-      uid: currentUser.uid,
-      name: username,
-      text,
-      timestamp: Date.now()
-    });
-    input.value = "";
   }
-}
+</script>
 
-function closeReportPopup() {
-  document.getElementById("reportPopup").style.display = "none";
-}
-window.closeReportPopup = closeReportPopup;
-
-  </script>
 </body>
-  </html>
+</html>
