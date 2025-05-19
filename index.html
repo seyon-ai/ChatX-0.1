@@ -21,7 +21,7 @@
     }
     #loginPage, #chatPage {
       width: 100%;
-      max-width: 500px;
+      max-width: 600px;
       padding: 20px;
       display: none;
     }
@@ -32,9 +32,9 @@
       text-align: center;
       margin-bottom: 20px;
       color: #00ffff;
-      text-shadow: 0 0 5px #0ff;
+      text-shadow: 0 0 8px #0ff;
     }
-    input, button {
+    input, button, select {
       width: 100%;
       padding: 12px;
       margin: 10px 0;
@@ -43,24 +43,27 @@
       background: #1a1a1a;
       color: #0ff;
       font-size: 1em;
+      box-shadow: 0 0 10px #0ff33f3f;
     }
     button {
       background: #0ff;
       color: #000;
       cursor: pointer;
       transition: 0.3s;
+      font-weight: bold;
     }
     button:hover {
       background: #00cccc;
     }
     #messages {
-      max-height: 300px;
+      max-height: 400px;
       overflow-y: auto;
       border: 1px solid #0ff;
       border-radius: 8px;
       padding: 10px;
       background: #121212;
       margin-bottom: 10px;
+      box-shadow: 0 0 10px #00ffff55;
     }
     .msg {
       margin-bottom: 8px;
@@ -72,6 +75,14 @@
     .msg strong {
       color: #0ff;
     }
+    .chat-mode {
+      display: flex;
+      gap: 10px;
+      margin: 10px 0;
+    }
+    .chat-mode button {
+      flex: 1;
+    }
   </style>
 </head>
 <body>
@@ -80,7 +91,11 @@
     <input type="text" id="usernameInput" placeholder="Your name..." />
     <button onclick="enterChat()">Continue</button>
   </div>  <div id="chatPage">
-    <h1>ChatX Global</h1>
+    <h1>ChatX - Neon</h1>
+    <div class="chat-mode">
+      <button onclick="switchMode('global')">Global</button>
+      <button onclick="switchMode('private')">Private</button>
+    </div>
     <div id="messages"></div>
     <input type="text" id="messageInput" placeholder="Type your message..." />
     <button onclick="sendMessage()">Send</button>
@@ -93,6 +108,11 @@
       set,
       onChildAdded
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import {
+      getAuth,
+      signInAnonymously,
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDaZ4phogHVYs1P5FxWgZ82xWYuhn40Jsk",
@@ -106,8 +126,14 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
+    const auth = getAuth(app);
 
     let username = "";
+    let currentMode = "global";
+
+    signInAnonymously(auth).then(() => {
+      console.log("Signed in anonymously");
+    });
 
     function enterChat() {
       const nameInput = document.getElementById("usernameInput");
@@ -115,16 +141,25 @@
         username = nameInput.value.trim();
         document.getElementById("loginPage").classList.remove("active");
         document.getElementById("chatPage").classList.add("active");
+        loadMessages();
       }
     }
 
     window.enterChat = enterChat;
 
+    function switchMode(mode) {
+      currentMode = mode;
+      document.getElementById("messages").innerHTML = "";
+      loadMessages();
+    }
+
+    window.switchMode = switchMode;
+
     function sendMessage() {
       const msgInput = document.getElementById("messageInput");
       const text = msgInput.value.trim();
       if (text !== "") {
-        const msgRef = ref(db, "messages");
+        const msgRef = ref(db, currentMode === 'global' ? "globalMessages" : `privateMessages/${username}`);
         const newMsgRef = push(msgRef);
         set(newMsgRef, {
           name: username,
@@ -137,15 +172,17 @@
 
     window.sendMessage = sendMessage;
 
-    const messagesDiv = document.getElementById("messages");
-
-    onChildAdded(ref(db, "messages"), (snapshot) => {
-      const msg = snapshot.val();
-      const msgElem = document.createElement("div");
-      msgElem.className = "msg";
-      msgElem.innerHTML = `<strong>${msg.name}:</strong> ${msg.text}`;
-      messagesDiv.appendChild(msgElem);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    });
+    function loadMessages() {
+      const path = currentMode === 'global' ? "globalMessages" : `privateMessages/${username}`;
+      onChildAdded(ref(db, path), (snapshot) => {
+        const msg = snapshot.val();
+        const msgElem = document.createElement("div");
+        msgElem.className = "msg";
+        msgElem.innerHTML = `<strong>${msg.name}:</strong> ${msg.text}`;
+        const messagesDiv = document.getElementById("messages");
+        messagesDiv.appendChild(msgElem);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      });
+    }
   </script></body>
 </html>
