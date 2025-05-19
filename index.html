@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -20,13 +19,13 @@
       height: 100vh;
       overflow: hidden;
     }
-    #loginPage, #chatContainer {
+    #loginPage, #chatPage {
       width: 100%;
-      max-width: 1200px;
+      max-width: 600px;
       padding: 20px;
       display: none;
     }
-    #loginPage.active, #chatContainer.active {
+    #loginPage.active, #chatPage.active {
       display: block;
     }
     h1 {
@@ -54,36 +53,14 @@
     button:hover {
       background: #00cccc;
     }
-    #chatContainer {
-      display: flex;
-      gap: 10px;
-    }
-    #globalChat, #privateChats {
-      flex: 1;
+    #messages, #privateMessages {
+      max-height: 300px;
+      overflow-y: auto;
       border: 1px solid #0ff;
       border-radius: 8px;
       padding: 10px;
       background: #121212;
-      height: 80vh;
-      overflow-y: auto;
-    }
-    #userList {
-      border: 1px solid #0ff;
-      background: #1a1a1a;
-      border-radius: 8px;
-      padding: 10px;
-      margin-top: 10px;
-      height: 200px;
-      overflow-y: auto;
-    }
-    .userItem {
-      padding: 8px;
-      margin: 5px 0;
-      background: #222;
-      border-left: 4px solid #0ff;
-      cursor: pointer;
-      border-radius: 4px;
-      position: relative;
+      margin-bottom: 10px;
     }
     .msg {
       margin-bottom: 8px;
@@ -95,49 +72,36 @@
     .msg strong {
       color: #0ff;
     }
+    #usersList div {
+      padding: 6px;
+      border-bottom: 1px solid #0ff;
+      cursor: pointer;
+    }
+    #usersList div:hover {
+      background: #1a1a1a;
+    }
+    #privateChatBox {
+      display: none;
+      border-left: 2px solid #0ff;
+      padding-left: 10px;
+    }
+    #reportPopup {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #111;
+      border: 2px solid #0ff;
+      padding: 20px;
+      border-radius: 10px;
+      color: #fff;
+      z-index: 1000;
+    }
     #typingIndicator {
       font-size: 0.9em;
-      color: #888;
-    }
-    .popup {
-      position: absolute;
-      top: 10px;
-      left: 100%;
-      background: #111;
-      border: 1px solid #0ff;
-      border-radius: 6px;
-      display: none;
-      flex-direction: column;
-    }
-    .popup button {
-      background: transparent;
-      border: none;
-      color: #0ff;
-      text-align: left;
-      padding: 10px;
-      width: 100%;
-    }
-    .popup button:hover {
-      background: #0ff;
-      color: #000;
-    }
-    .privateChatBox {
-      margin-top: 10px;
-      background: #222;
-      padding: 10px;
-      border: 1px solid #0ff;
-      border-radius: 8px;
-      position: relative;
-    }
-    .closeChat {
-      position: absolute;
-      top: 5px;
-      right: 10px;
-      background: transparent;
-      border: none;
-      color: red;
-      font-size: 18px;
-      cursor: pointer;
+      color: #aaa;
+      margin-bottom: 5px;
     }
   </style>
 </head>
@@ -145,23 +109,28 @@
   <div id="loginPage" class="active">
     <h1>Enter Your Name</h1>
     <input type="text" id="usernameInput" placeholder="Your name..." />
-    <button onclick="loginUser()">Enter Chat</button>
+    <button onclick="enterChat()">Continue</button>
   </div>
-
-  <div id="chatContainer">
-    <h1>ChatX - Global Chat <span id="onlineCount">(0 Online)</span></h1>
-    <div id="chatMain" style="display: flex; gap: 10px;">
-      <div id="globalChat">
-        <div id="globalMessages"></div>
-        <div id="typingIndicator"></div>
-        <input type="text" id="globalMessageInput" placeholder="Type a message..." oninput="showTyping()" />
-        <button onclick="sendGlobalMessage()">Send</button>
-        <div id="userList"></div>
-      </div>
-      <div id="privateChats"></div>
+  <div id="chatPage">
+    <h1>ChatX Global</h1>
+    <p id="onlineCount">Online: 0</p>
+    <div id="typingIndicator"></div>
+    <div id="messages"></div>
+    <input type="text" id="messageInput" placeholder="Type your message..." oninput="sendTypingStatus()" />
+    <button onclick="sendMessage()">Send</button>
+    <div id="usersList"></div>
+    <div id="privateChatBox">
+      <h3>Private Chat with <span id="privateUser"></span></h3>
+      <div id="privateMessages"></div>
+      <input type="text" id="privateMessageInput" placeholder="Type a private message..." />
+      <button onclick="sendPrivateMessage()">Send</button>
     </div>
   </div>
-
+  <div id="reportPopup">
+    <h3>Report User</h3>
+    <p>Email abuse to: abussprotocolwdev@gmail.com</p>
+    <button onclick="closeReportPopup()">Close</button>
+  </div>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import {
@@ -172,146 +141,170 @@
       onChildAdded,
       onValue,
       update,
-      remove,
+      remove
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import {
+      getAuth,
+      signInAnonymously,
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";const firebaseConfig = {
+  apiKey: "AIzaSyDaZ4phogHVYs1P5FxWgZ82xWYuhn40Jsk",
+  authDomain: "chatxo-273ae.firebaseapp.com",
+  databaseURL: "https://chatxo-273ae-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "chatxo-273ae",
+  storageBucket: "chatxo-273ae.appspot.com",
+  messagingSenderId: "164084079084",
+  appId: "1:164084079084:web:db272d2eed61537fc9c8c9"
+};
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyDaZ4phogHVYs1P5FxWgZ82xWYuhn40Jsk",
-      authDomain: "chatxo-273ae.firebaseapp.com",
-      databaseURL: "https://chatxo-273ae-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "chatxo-273ae",
-      storageBucket: "chatxo-273ae.appspot.com",
-      messagingSenderId: "164084079084",
-      appId: "1:164084079084:web:db272d2eed61537fc9c8c9"
-    };
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const auth = getAuth();
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    const auth = getAuth();
+let currentUser = null;
+let username = localStorage.getItem('chatx_username') || "";
+let typingTimeout;
 
-    let currentUser = {};
+function enterChat() {
+  const nameInput = document.getElementById("usernameInput").value.trim();
+  if (nameInput !== "") {
+    username = nameInput;
+    localStorage.setItem('chatx_username', username);
+    signInAnonymously(auth).then(() => {
+      document.getElementById("loginPage").classList.remove("active");
+      document.getElementById("chatPage").classList.add("active");
+    });
+  }
+}
 
-    window.loginUser = () => {
-      const username = document.getElementById("usernameInput").value.trim();
-      if (username === "") return;
+window.enterChat = enterChat;
 
-      signInAnonymously(auth)
-        .then(() => {
-          onAuthStateChanged(auth, (user) => {
-            if (user) {
-              currentUser = {
-                id: user.uid,
-                name: username
-              };
-              const userRef = ref(db, `users/${user.uid}`);
-              set(userRef, {
-                name: username,
-                online: true
-              });
-              document.getElementById("loginPage").classList.remove("active");
-              document.getElementById("chatContainer").classList.add("active");
-              loadGlobalChat();
-              loadUserList();
-            }
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    currentUser = user;
+    const userRef = ref(db, `users/${currentUser.uid}`);
+    set(userRef, { name: username });
+
+    onValue(ref(db, 'users'), (snapshot) => {
+      const usersList = document.getElementById("usersList");
+      usersList.innerHTML = "<h3>Online Users</h3>";
+      let count = 0;
+      snapshot.forEach(child => {
+        count++;
+        if (child.key !== currentUser.uid) {
+          const div = document.createElement("div");
+          div.textContent = child.val().name;
+          div.addEventListener("contextmenu", (e) => {
+            e.preventDefault();
+            showUserOptions(child.key, child.val().name);
           });
-        })
-        .catch(console.error);
-    };
-
-    function loadGlobalChat() {
-      const messagesRef = ref(db, "globalMessages");
-      onChildAdded(messagesRef, (snap) => {
-        const msg = snap.val();
-        const div = document.createElement("div");
-        div.className = "msg";
-        div.innerHTML = `<strong>${msg.name}:</strong> ${msg.text}`;
-        document.getElementById("globalMessages").appendChild(div);
-      });
-    }
-
-    window.sendGlobalMessage = () => {
-      const input = document.getElementById("globalMessageInput");
-      const text = input.value.trim();
-      if (text === "") return;
-
-      const msgRef = push(ref(db, "globalMessages"));
-      set(msgRef, {
-        name: currentUser.name,
-        text: text,
-        time: Date.now()
-      });
-      input.value = "";
-    };
-
-    function loadUserList() {
-      const userListRef = ref(db, "users");
-      onValue(userListRef, (snap) => {
-        const users = snap.val();
-        const userList = document.getElementById("userList");
-        userList.innerHTML = "<h3>Online Users</h3>";
-        let count = 0;
-        for (let id in users) {
-          if (users[id].online) {
-            count++;
-            const div = document.createElement("div");
-            div.className = "userItem";
-            div.textContent = users[id].name;
-            div.oncontextmenu = (e) => {
-              e.preventDefault();
-              showPopup(div, users[id]);
-            };
-            userList.appendChild(div);
-          }
+          usersList.appendChild(div);
         }
-        document.getElementById("onlineCount").textContent = `(${count} Online)`;
       });
-    }
+      document.getElementById("onlineCount").textContent = `Online: ${count}`;
+    });
 
-    function showPopup(element, user) {
-      const popup = document.createElement("div");
-      popup.className = "popup";
-      popup.innerHTML = `
-        <button onclick="startPrivateChat('${user.name}', '${user.id}')">Chat with ${user.name}</button>
-        <button onclick="alert('Reacted!')">React</button>
-        <button onclick="alert('Report to: abussprotocolwdev@gmail.com')">Report</button>
-      `;
-      element.appendChild(popup);
-      popup.style.display = "flex";
-      document.body.addEventListener("click", () => popup.remove(), { once: true });
-    }
+    onChildAdded(ref(db, "messages"), (snapshot) => {
+      const msg = snapshot.val();
+      if (msg.uid !== currentUser.uid) {
+        addMessage(msg.name, msg.text);
+      }
+    });
+  }
+});
 
-    window.startPrivateChat = (name, uid) => {
-      const chatBox = document.createElement("div");
-      chatBox.className = "privateChatBox";
-      chatBox.innerHTML = `
-        <button class="closeChat" onclick="this.parentElement.remove()">&times;</button>
-        <h3>Chat with ${name}</h3>
-        <div class="privateMessages" id="chatWith_${uid}"></div>
-        <input type="text" id="input_${uid}" placeholder="Type a message..." />
-        <button onclick="sendPrivateMessage('${uid}', '${name}')">Send</button>
-      `;
-      document.getElementById("privateChats").appendChild(chatBox);
-    }
+function sendMessage() {
+  const input = document.getElementById("messageInput");
+  const text = input.value.trim();
+  if (text) {
+    const msgRef = push(ref(db, "messages"));
+    set(msgRef, {
+      uid: currentUser.uid,
+      name: username,
+      text,
+      timestamp: Date.now()
+    });
+    input.value = "";
+    document.getElementById("messages").scrollTop = document.getElementById("messages").scrollHeight;
+  }
+}
 
-    window.sendPrivateMessage = (uid, name) => {
-      const input = document.getElementById(`input_${uid}`);
-      const text = input.value.trim();
-      if (!text) return;
-      const msgRef = push(ref(db, `private/${currentUser.id}_${uid}`));
-      set(msgRef, {
-        from: currentUser.name,
-        to: name,
-        text: text,
-        time: Date.now()
-      });
-      input.value = "";
-    }
+window.sendMessage = sendMessage;
 
-    window.showTyping = () => {
-      document.getElementById("typingIndicator").textContent = `${currentUser.name} is typing...`;
-      setTimeout(() => document.getElementById("typingIndicator").textContent = "", 1500);
-    };
+function addMessage(name, text) {
+  const div = document.createElement("div");
+  div.className = "msg";
+  div.innerHTML = `<strong>${name}:</strong> ${text}`;
+  const messagesDiv = document.getElementById("messages");
+  messagesDiv.appendChild(div);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+function sendTypingStatus() {
+  clearTimeout(typingTimeout);
+  set(ref(db, `typing/${currentUser.uid}`), username);
+  typingTimeout = setTimeout(() => remove(ref(db, `typing/${currentUser.uid}`)), 3000);
+}
+
+onValue(ref(db, 'typing'), (snapshot) => {
+  let typingUsers = [];
+  snapshot.forEach(child => {
+    if (child.key !== currentUser.uid) {
+      typingUsers.push(child.val());
+    }
+  });
+  document.getElementById("typingIndicator").textContent = typingUsers.length
+    ? `${typingUsers.join(", ")} is typing...`
+    : "";
+});
+
+function showUserOptions(uid, name) {
+  const options = confirm(`Options:\n1. Chat with ${name}\n2. React\n3. Report`);
+  if (options) openPrivateChat(uid, name);
+}
+
+function openPrivateChat(uid, name) {
+  document.getElementById("privateUser").textContent = name;
+  document.getElementById("privateChatBox").style.display = "block";
+  const privateMessagesDiv = document.getElementById("privateMessages");
+  privateMessagesDiv.innerHTML = "";
+
+  onChildAdded(ref(db, `private/${getPrivateKey(currentUser.uid, uid)}`), (snapshot) => {
+    const msg = snapshot.val();
+    const div = document.createElement("div");
+    div.className = "msg";
+    div.innerHTML = `<strong>${msg.name}:</strong> ${msg.text}`;
+    privateMessagesDiv.appendChild(div);
+    privateMessagesDiv.scrollTop = privateMessagesDiv.scrollHeight;
+  });
+}
+
+function getPrivateKey(uid1, uid2) {
+  return uid1 < uid2 ? `${uid1}_${uid2}` : `${uid2}_${uid1}`;
+}
+
+function sendPrivateMessage() {
+  const input = document.getElementById("privateMessageInput");
+  const text = input.value.trim();
+  const uid = Object.keys(currentUser.providerData)[0]; // current chat partner assumed tracked
+  if (text) {
+    const refKey = getPrivateKey(currentUser.uid, uid);
+    const msgRef = push(ref(db, `private/${refKey}`));
+    set(msgRef, {
+      uid: currentUser.uid,
+      name: username,
+      text,
+      timestamp: Date.now()
+    });
+    input.value = "";
+  }
+}
+
+function closeReportPopup() {
+  document.getElementById("reportPopup").style.display = "none";
+}
+window.closeReportPopup = closeReportPopup;
+
   </script>
 </body>
-</html>
+  </html>
