@@ -13,17 +13,17 @@
     body {
       background: #0f0f0f;
       color: #fff;
-      display: flex;
-      justify-content: center;
-      align-items: center;
       height: 100vh;
-      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
     }
     #loginPage, #chatPage {
-      width: 100%;
-      max-width: 600px;
-      padding: 20px;
       display: none;
+      width: 100%;
+      max-width: 700px;
+      padding: 20px;
     }
     #loginPage.active, #chatPage.active {
       display: block;
@@ -31,10 +31,9 @@
     h1 {
       text-align: center;
       margin-bottom: 20px;
-      color: #00ffff;
-      text-shadow: 0 0 8px #0ff;
+      color: #0ff;
     }
-    input, button, select {
+    input, button {
       width: 100%;
       padding: 12px;
       margin: 10px 0;
@@ -43,146 +42,184 @@
       background: #1a1a1a;
       color: #0ff;
       font-size: 1em;
-      box-shadow: 0 0 10px #0ff33f3f;
     }
     button {
       background: #0ff;
       color: #000;
       cursor: pointer;
-      transition: 0.3s;
-      font-weight: bold;
-    }
-    button:hover {
-      background: #00cccc;
     }
     #messages {
-      max-height: 400px;
+      max-height: 300px;
       overflow-y: auto;
-      border: 1px solid #0ff;
+      background: #121212;
       border-radius: 8px;
       padding: 10px;
-      background: #121212;
       margin-bottom: 10px;
-      box-shadow: 0 0 10px #00ffff55;
     }
     .msg {
-      margin-bottom: 8px;
       padding: 8px;
-      background: #222;
+      margin-bottom: 6px;
+      background: #1f1f1f;
       border-left: 4px solid #0ff;
-      border-radius: 4px;
     }
-    .msg strong {
-      color: #0ff;
-    }
-    .chat-mode {
+    #userList {
+      margin-top: 20px;
       display: flex;
       gap: 10px;
-      margin: 10px 0;
+      flex-wrap: wrap;
     }
-    .chat-mode button {
-      flex: 1;
+    .userTag {
+      padding: 5px 10px;
+      background: #333;
+      border-radius: 5px;
+      cursor: pointer;
+      color: #0ff;
+    }
+    .chatModeToggle {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
     }
   </style>
 </head>
 <body>
-  <div id="loginPage" class="active">
-    <h1>Enter Your Name</h1>
-    <input type="text" id="usernameInput" placeholder="Your name..." />
-    <button onclick="enterChat()">Continue</button>
-  </div>  <div id="chatPage">
-    <h1>ChatX - Neon</h1>
-    <div class="chat-mode">
-      <button onclick="switchMode('global')">Global</button>
-      <button onclick="switchMode('private')">Private</button>
-    </div>
-    <div id="messages"></div>
-    <input type="text" id="messageInput" placeholder="Type your message..." />
-    <button onclick="sendMessage()">Send</button>
-  </div>  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import {
-      getDatabase,
-      ref,
-      push,
-      set,
-      onChildAdded
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-    import {
-      getAuth,
-      signInAnonymously,
-      onAuthStateChanged
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+<div id="loginPage" class="active">
+  <h1>Welcome to ChatX</h1>
+  <input type="text" id="usernameInput" placeholder="Enter your name...">
+  <button onclick="enterChat()">Continue</button>
+</div>
+<div id="chatPage">
+  <h1>ChatX Neon</h1>
+  <div class="chatModeToggle">
+    <button onclick="setMode('global')">Global Chat</button>
+    <button onclick="setMode('private')">Private Chat</button>
+  </div>
+  <div id="messages"></div>
+  <input type="text" id="messageInput" placeholder="Type your message...">
+  <button onclick="sendMessage()">Send</button>
+  <div id="userList"></div>
+</div>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import {
+    getDatabase,
+    ref,
+    push,
+    set,
+    onChildAdded,
+    onDisconnect,
+    remove,
+    get,
+    child
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  import {
+    getAuth,
+    signInAnonymously,
+    onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";const firebaseConfig = { apiKey: "AIzaSyDaZ4phogHVYs1P5FxWgZ82xWYuhn40Jsk", authDomain: "chatxo-273ae.firebaseapp.com", databaseURL: "https://chatxo-273ae-default-rtdb.asia-southeast1.firebasedatabase.app", projectId: "chatxo-273ae", storageBucket: "chatxo-273ae.appspot.com", messagingSenderId: "164084079084", appId: "1:164084079084:web:db272d2eed61537fc9c8c9" };
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyDaZ4phogHVYs1P5FxWgZ82xWYuhn40Jsk",
-      authDomain: "chatxo-273ae.firebaseapp.com",
-      databaseURL: "https://chatxo-273ae-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "chatxo-273ae",
-      storageBucket: "chatxo-273ae.appspot.com",
-      messagingSenderId: "164084079084",
-      appId: "1:164084079084:web:db272d2eed61537fc9c8c9"
-    };
+const app = initializeApp(firebaseConfig); const db = getDatabase(app); const auth = getAuth();
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    const auth = getAuth(app);
+let currentUser = null; let currentChatMode = 'global'; let selectedUser = null; let messagesRef = null;
 
-    let username = "";
-    let currentMode = "global";
+function enterChat() { const username = document.getElementById('usernameInput').value.trim(); if (!username) return;
 
-    signInAnonymously(auth).then(() => {
-      console.log("Signed in anonymously");
-    });
+signInAnonymously(auth).then(() => {
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      currentUser = user;
+      const uid = user.uid;
+      set(ref(db, `users/${uid}`), { name: username });
+      onDisconnect(ref(db, `users/${uid}`)).remove();
 
-    function enterChat() {
-      const nameInput = document.getElementById("usernameInput");
-      if (nameInput.value.trim() !== "") {
-        username = nameInput.value.trim();
-        document.getElementById("loginPage").classList.remove("active");
-        document.getElementById("chatPage").classList.add("active");
-        loadMessages();
-      }
-    }
+      document.getElementById('loginPage').classList.remove('active');
+      document.getElementById('chatPage').classList.add('active');
 
-    window.enterChat = enterChat;
-
-    function switchMode(mode) {
-      currentMode = mode;
-      document.getElementById("messages").innerHTML = "";
       loadMessages();
+      loadUsers();
     }
+  });
+});
 
-    window.switchMode = switchMode;
+}
 
-    function sendMessage() {
-      const msgInput = document.getElementById("messageInput");
-      const text = msgInput.value.trim();
-      if (text !== "") {
-        const msgRef = ref(db, currentMode === 'global' ? "globalMessages" : `privateMessages/${username}`);
-        const newMsgRef = push(msgRef);
-        set(newMsgRef, {
-          name: username,
-          text: text,
-          timestamp: Date.now()
-        });
-        msgInput.value = "";
-      }
-    }
+window.enterChat = enterChat;
 
-    window.sendMessage = sendMessage;
+function setMode(mode) { currentChatMode = mode; selectedUser = null; loadMessages(); }
 
-    function loadMessages() {
-      const path = currentMode === 'global' ? "globalMessages" : `privateMessages/${username}`;
-      onChildAdded(ref(db, path), (snapshot) => {
-        const msg = snapshot.val();
-        const msgElem = document.createElement("div");
-        msgElem.className = "msg";
-        msgElem.innerHTML = `<strong>${msg.name}:</strong> ${msg.text}`;
-        const messagesDiv = document.getElementById("messages");
-        messagesDiv.appendChild(msgElem);
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
-      });
-    }
-  </script></body>
+window.setMode = setMode;
+
+function getChatId(uid1, uid2) { return [uid1, uid2].sort().join('_'); }
+
+function loadMessages() { const msgBox = document.getElementById('messages'); msgBox.innerHTML = '';
+
+if (messagesRef) messagesRef.off();
+
+if (currentChatMode === 'global') {
+  messagesRef = ref(db, 'messages');
+} else if (selectedUser) {
+  const chatId = getChatId(currentUser.uid, selectedUser);
+  messagesRef = ref(db, `privateChats/${chatId}/messages`);
+} else {
+  return;
+}
+
+onChildAdded(messagesRef, (snap) => {
+  const msg = snap.val();
+  const div = document.createElement('div');
+  div.className = 'msg';
+  div.innerHTML = `<strong>${msg.name}:</strong> ${msg.text}`;
+  msgBox.appendChild(div);
+  msgBox.scrollTop = msgBox.scrollHeight;
+});
+
+}
+
+function sendMessage() { const text = document.getElementById('messageInput').value.trim(); if (!text) return;
+
+const nameRef = ref(db, `users/${currentUser.uid}`);
+get(nameRef).then(snapshot => {
+  const name = snapshot.val().name || "Anonymous";
+  const data = { name, text, timestamp: Date.now() };
+  let path;
+
+  if (currentChatMode === 'global') {
+    path = ref(db, 'messages');
+  } else if (selectedUser) {
+    const chatId = getChatId(currentUser.uid, selectedUser);
+    path = ref(db, `privateChats/${chatId}/messages`);
+  } else {
+    return;
+  }
+
+  push(path, data);
+  document.getElementById('messageInput').value = '';
+});
+
+}
+
+window.sendMessage = sendMessage;
+
+function loadUsers() { const userList = document.getElementById('userList'); userList.innerHTML = '';
+
+const usersRef = ref(db, 'users');
+onChildAdded(usersRef, (snap) => {
+  const user = snap.val();
+  const uid = snap.key;
+  if (uid === currentUser.uid) return;
+
+  const tag = document.createElement('div');
+  tag.className = 'userTag';
+  tag.textContent = user.name;
+  tag.onclick = () => {
+    selectedUser = uid;
+    currentChatMode = 'private';
+    loadMessages();
+  };
+  userList.appendChild(tag);
+});
+
+} </script>
+
+</body>
 </html>
