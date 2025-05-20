@@ -18,12 +18,15 @@
       justify-content: center;
       align-items: center;
       height: 100vh;
+      overflow: hidden;
     }
     #loginPage, #chatPage {
       display: none;
       width: 100%;
-      max-width: 600px;
+      max-width: 800px;
+      height: 90vh;
       padding: 20px;
+      transition: all 0.3s ease;
     }
     #loginPage.active, #chatPage.active {
       display: block;
@@ -34,7 +37,7 @@
       text-shadow: 0 0 10px #0ff;
       margin-bottom: 20px;
     }
-    input, button {
+    input, button, select {
       width: 100%;
       padding: 12px;
       margin: 10px 0;
@@ -43,20 +46,49 @@
       background: #1a1a1a;
       color: #0ff;
       font-size: 1em;
+      transition: all 0.2s ease;
+    }
+    input:focus, button:focus, select:focus {
+      outline: 2px solid #0ff;
+      box-shadow: 0 0 10px #0ff;
     }
     button {
       background: #0ff;
       color: #000;
       cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover {
+      background: #0dd;
+      transform: translateY(-2px);
+    }
+    button:active {
+      transform: translateY(0);
+    }
+    .chat-container {
+      display: flex;
+      height: calc(100% - 60px);
+      gap: 10px;
+    }
+    .sidebar {
+      width: 200px;
+      display: flex;
+      flex-direction: column;
+    }
+    .chat-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
     }
     #messages {
-      height: 300px;
+      flex: 1;
       overflow-y: auto;
       border: 1px solid #0ff;
       padding: 10px;
       background: #121212;
       margin-bottom: 10px;
       border-radius: 8px;
+      scroll-behavior: smooth;
     }
     .msg {
       margin-bottom: 8px;
@@ -64,28 +96,122 @@
       border-left: 4px solid #0ff;
       padding: 8px;
       border-radius: 4px;
+      animation: fadeIn 0.3s ease;
+    }
+    .private-msg {
+      border-left-color: #f0f;
+      background: #222022;
+    }
+    .system-msg {
+      border-left-color: #ff0;
+      background: #222220;
+      text-align: center;
+      font-style: italic;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
     }
     .msg strong {
       color: #0ff;
+    }
+    .private-msg strong {
+      color: #f0f;
     }
     .timestamp {
       font-size: 0.8em;
       color: #888;
       float: right;
     }
-    #onlineUsers {
+    #onlineUsers, #groupsList {
+      flex: 1;
+      overflow-y: auto;
       margin: 10px 0;
       padding: 10px;
       border: 1px solid #0ff;
       background: #1a1a1a;
       border-radius: 8px;
     }
-    .user {
+    .user, .group {
       padding: 5px;
       cursor: pointer;
+      border-radius: 4px;
+      margin: 2px 0;
+      transition: all 0.2s ease;
     }
-    .user:hover {
+    .user:hover, .group:hover {
       background: #333;
+    }
+    .user.active, .group.active {
+      background: #0ff;
+      color: #000;
+      font-weight: bold;
+    }
+    .tab-buttons {
+      display: flex;
+      margin-bottom: 10px;
+    }
+    .tab-button {
+      flex: 1;
+      padding: 8px;
+      background: #1a1a1a;
+      border: none;
+      border-bottom: 2px solid #0ff;
+      color: #0ff;
+      cursor: pointer;
+    }
+    .tab-button.active {
+      background: #0ff;
+      color: #000;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+    }
+    .modal-content {
+      background: #1a1a1a;
+      padding: 20px;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 400px;
+      border: 2px solid #0ff;
+    }
+    .close-modal {
+      float: right;
+      cursor: pointer;
+      font-size: 1.5em;
+    }
+    .typing-indicator {
+      color: #888;
+      font-style: italic;
+      font-size: 0.9em;
+      height: 18px;
+    }
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #0ff;
+      color: #000;
+      padding: 10px 20px;
+      border-radius: 8px;
+      animation: slideIn 0.3s ease, fadeOut 0.5s ease 2.5s forwards;
+      z-index: 1000;
+    }
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes fadeOut {
+      to { opacity: 0; }
     }
   </style>
 </head>
@@ -98,11 +224,48 @@
 </div>
 
 <div id="chatPage">
-  <h1>ChatX - Global Chat</h1>
-  <div id="onlineUsers"><strong>Online Users:</strong></div>
-  <div id="messages"></div>
-  <input type="text" id="messageInput" placeholder="Type a message..." />
-  <button onclick="sendMessage()">Send</button>
+  <h1>ChatX - Neon Chat</h1>
+  
+  <div class="chat-container">
+    <div class="sidebar">
+      <div class="tab-buttons">
+        <button class="tab-button active" onclick="switchTab('users')">Users</button>
+        <button class="tab-button" onclick="switchTab('groups')">Groups</button>
+      </div>
+      
+      <div id="usersTab" class="tab-content">
+        <div id="onlineUsers"><strong>Online Users:</strong></div>
+        <button onclick="showCreateGroupModal()">Create Group</button>
+      </div>
+      
+      <div id="groupsTab" class="tab-content" style="display:none;">
+        <div id="groupsList"><strong>Your Groups:</strong></div>
+      </div>
+    </div>
+    
+    <div class="chat-area">
+      <div id="chatHeader">
+        <h2 id="currentChatTitle">Global Chat</h2>
+        <div class="typing-indicator" id="typingIndicator"></div>
+      </div>
+      <div id="messages"></div>
+      <input type="text" id="messageInput" placeholder="Type a message..." />
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create Group Modal -->
+<div id="createGroupModal" class="modal">
+  <div class="modal-content">
+    <span class="close-modal" onclick="closeModal('createGroupModal')">&times;</span>
+    <h2>Create New Group</h2>
+    <input type="text" id="groupNameInput" placeholder="Group name">
+    <div id="groupMembersList" style="max-height: 200px; overflow-y: auto; margin: 10px 0; border: 1px solid #0ff; padding: 10px; border-radius: 8px;">
+      <strong>Select Members:</strong>
+    </div>
+    <button onclick="createGroup()">Create Group</button>
+  </div>
 </div>
 
 <script type="module">
@@ -113,8 +276,11 @@
     push,
     set,
     onChildAdded,
+    onChildRemoved,
     onDisconnect,
-    remove
+    remove,
+    update,
+    onValue
   } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
   import {
@@ -139,92 +305,256 @@
 
   let username = "";
   let userId = "";
+  let currentChat = { type: "global", id: "global" };
+  let onlineUsers = {};
+  let groups = {};
+  let typingTimeout;
+  let lastTypingTime = 0;
 
-  function enterChat() {
-    const name = document.getElementById("usernameInput").value.trim();
-    if (!name) return alert("Please enter a username.");
-    username = name;
-    signInAnonymously(auth).catch(console.error);
+  // UI Functions
+  function showNotification(message) {
+    const notification = document.createElement('div');
+    notification.className = 'notification';
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      notification.remove();
+    }, 3000);
   }
 
-  window.enterChat = enterChat;
-  window.sendMessage = sendMessage;
+  function closeModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+  }
 
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      userId = user.uid;
-      document.getElementById("loginPage").classList.remove("active");
-      document.getElementById("chatPage").classList.add("active");
+  function showCreateGroupModal() {
+    const modal = document.getElementById('createGroupModal');
+    const membersList = document.getElementById('groupMembersList');
+    
+    // Clear previous selections
+    membersList.innerHTML = '<strong>Select Members:</strong>';
+    
+    // Add all online users except self
+    Object.values(onlineUsers).forEach(user => {
+      if (user.id !== userId) {
+        const memberDiv = document.createElement('div');
+        memberDiv.className = 'user';
+        memberDiv.innerHTML = `
+          <input type="checkbox" id="member-${user.id}" class="member-checkbox">
+          <label for="member-${user.id}">${user.name}</label>
+        `;
+        membersList.appendChild(memberDiv);
+      }
+    });
+    
+    modal.style.display = 'flex';
+    document.getElementById('groupNameInput').focus();
+  }
 
-      const userRef = ref(db, "online/" + userId);
-      set(userRef, { name: username });
-      onDisconnect(userRef).remove();
-
-      listenForMessages();
-      listenForOnlineUsers();
-
-      document.getElementById("messageInput").focus();
+  function switchTab(tabName) {
+    document.querySelectorAll('.tab-button').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    document.querySelectorAll('.tab-content').forEach(content => {
+      content.style.display = 'none';
+    });
+    
+    if (tabName === 'users') {
+      document.querySelector('.tab-button[onclick="switchTab(\'users\')"]').classList.add('active');
+      document.getElementById('usersTab').style.display = 'block';
+    } else {
+      document.querySelector('.tab-button[onclick="switchTab(\'groups\')"]').classList.add('active');
+      document.getElementById('groupsTab').style.display = 'block';
     }
-  });
+  }
+
+  // Chat Functions
+  function enterChat() {
+    const name = document.getElementById('usernameInput').value.trim();
+    if (!name) return alert("Please enter a username.");
+    if (name.length > 20) return alert("Username must be 20 characters or less.");
+    
+    username = name;
+    signInAnonymously(auth).catch(error => {
+      console.error("Authentication error:", error);
+      alert("Failed to connect. Please try again.");
+    });
+  }
 
   function sendMessage() {
-    const input = document.getElementById("messageInput");
+    const input = document.getElementById('messageInput');
     const text = input.value.trim();
     if (!text) return;
 
-    const msgRef = push(ref(db, "messages"));
-    set(msgRef, {
-      name: username,
-      text,
-      timestamp: Date.now()
-    });
+    let messageRef;
+    if (currentChat.type === 'global') {
+      messageRef = push(ref(db, "messages"));
+      set(messageRef, {
+        name: username,
+        text,
+        timestamp: Date.now(),
+        type: 'global'
+      });
+    } else if (currentChat.type === 'private') {
+      const chatId = [userId, currentChat.id].sort().join('_');
+      messageRef = push(ref(db, `private_messages/${chatId}`));
+      set(messageRef, {
+        from: userId,
+        to: currentChat.id,
+        name: username,
+        text,
+        timestamp: Date.now(),
+        type: 'private'
+      });
+      
+      // Notify the recipient
+      const notificationRef = push(ref(db, `notifications/${currentChat.id}`));
+      set(notificationRef, {
+        from: userId,
+        fromName: username,
+        type: 'private_message',
+        timestamp: Date.now(),
+        message: `New message from ${username}`,
+        chatId: chatId
+      });
+    } else if (currentChat.type === 'group') {
+      messageRef = push(ref(db, `group_messages/${currentChat.id}`));
+      set(messageRef, {
+        from: userId,
+        name: username,
+        text,
+        timestamp: Date.now(),
+        type: 'group'
+      });
+      
+      // Notify group members
+      const groupMembers = groups[currentChat.id]?.members || [];
+      groupMembers.forEach(memberId => {
+        if (memberId !== userId) {
+          const notificationRef = push(ref(db, `notifications/${memberId}`));
+          set(notificationRef, {
+            from: userId,
+            fromName: username,
+            type: 'group_message',
+            timestamp: Date.now(),
+            message: `New message in ${groups[currentChat.id].name}`,
+            groupId: currentChat.id
+          });
+        }
+      });
+    }
 
     input.value = "";
     input.focus();
+    
+    // Clear typing indicator
+    update(ref(db, `typing/${userId}`), { isTyping: false });
   }
 
-  function listenForMessages() {
-    const messagesDiv = document.getElementById("messages");
-    messagesDiv.innerHTML = "";
+  function handleTyping() {
+    const now = Date.now();
+    const input = document.getElementById('messageInput');
+    
+    if (input.value.length > 0) {
+      if (now - lastTypingTime > 2000) {
+        // Update typing status
+        if (currentChat.type === 'private') {
+          update(ref(db, `typing/${userId}`), {
+            isTyping: true,
+            to: currentChat.id,
+            name: username
+          });
+        } else if (currentChat.type === 'group') {
+          update(ref(db, `typing/${userId}`), {
+            isTyping: true,
+            groupId: currentChat.id,
+            name: username
+          });
+        }
+      }
+      lastTypingTime = now;
+    } else {
+      update(ref(db, `typing/${userId}`), { isTyping: false });
+    }
+    
+    // Clear previous timeout
+    if (typingTimeout) clearTimeout(typingTimeout);
+    
+    // Set timeout to clear typing status after 2 seconds of inactivity
+    typingTimeout = setTimeout(() => {
+      update(ref(db, `typing/${userId}`), { isTyping: false });
+    }, 2000);
+  }
 
-    onChildAdded(ref(db, "messages"), (snapshot) => {
-      const msg = snapshot.val();
-      const msgElem = document.createElement("div");
-      msgElem.className = "msg";
-      msgElem.innerHTML = `
-        <strong>${msg.name}:</strong> ${msg.text}
-        <span class="timestamp">${formatTime(msg.timestamp)}</span>
-      `;
-      messagesDiv.appendChild(msgElem);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  function createGroup() {
+    const groupName = document.getElementById('groupNameInput').value.trim();
+    if (!groupName) return alert("Please enter a group name.");
+    
+    const checkboxes = document.querySelectorAll('.member-checkbox:checked');
+    if (checkboxes.length === 0) return alert("Please select at least one member.");
+    
+    const members = Array.from(checkboxes).map(cb => {
+      const id = cb.id.split('-')[1];
+      return { id, name: onlineUsers[id].name };
     });
-  }
-
-  function listenForOnlineUsers() {
-    const usersDiv = document.getElementById("onlineUsers");
-    usersDiv.innerHTML = "<strong>Online Users:</strong>";
-
-    onChildAdded(ref(db, "online"), (snapshot) => {
-      const data = snapshot.val();
-      const userElem = document.createElement("div");
-      userElem.className = "user";
-      userElem.textContent = data.name;
-
-      userElem.addEventListener("contextmenu", (e) => {
-        e.preventDefault();
-        showOptions(data.name);
-      });
-
-      usersDiv.appendChild(userElem);
+    
+    // Include the creator in the group
+    members.push({ id: userId, name: username });
+    
+    const groupRef = push(ref(db, "groups"));
+    const groupId = groupRef.key;
+    
+    set(groupRef, {
+      name: groupName,
+      createdBy: userId,
+      createdAt: Date.now(),
+      members: members.reduce((acc, member) => {
+        acc[member.id] = member.name;
+        return acc;
+      }, {})
     });
+    
+    // Add group to each member's groups list
+    members.forEach(member => {
+      set(ref(db, `user_groups/${member.id}/${groupId}`), true);
+    });
+    
+    closeModal('createGroupModal');
+    showNotification(`Group "${groupName}" created!`);
   }
 
-  function showOptions(name) {
-    const choice = prompt(`Options for ${name}:\n1. Chat (Coming soon)\n2. React\n3. Report`);
+  function switchChat(type, id, name = null) {
+    // Clear previous chat listeners
+    currentChat = { type, id };
+    
+    // Update UI
+    document.querySelectorAll('.user, .group').forEach(el => {
+      el.classList.remove('active');
+    });
+    
+    if (type === 'private') {
+      document.querySelector(`.user[data-id="${id}"]`).classList.add('active');
+      document.getElementById('currentChatTitle').textContent = `Private: ${name}`;
+    } else if (type === 'group') {
+      document.querySelector(`.group[data-id="${id}"]`).classList.add('active');
+      document.getElementById('currentChatTitle').textContent = `Group: ${name}`;
+    } else {
+      document.getElementById('currentChatTitle').textContent = 'Global Chat';
+    }
+    
+    // Clear messages
+    document.getElementById('messages').innerHTML = '';
+    
+    // Listen to new chat
+    listenForMessages();
+  }
+
+  function showOptions(name, id) {
+    const choice = prompt(`Options for ${name}:\n1. Private Chat\n2. React\n3. Report`);
     if (choice === "3") {
       alert("Report sent to abussprotocolwdev@gmail.com");
     } else if (choice === "1") {
-      alert("Private chat feature is under development.");
+      switchChat('private', id, name);
     }
   }
 
@@ -233,17 +563,136 @@
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
-  // Enter key to send message
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      if (document.getElementById("chatPage").classList.contains("active")) {
-        sendMessage();
-      } else {
-        enterChat();
-      }
+  // Firebase Listeners
+  function listenForMessages() {
+    const messagesDiv = document.getElementById('messages');
+    messagesDiv.innerHTML = '';
+    
+    let messagesRef;
+    if (currentChat.type === 'global') {
+      messagesRef = ref(db, "messages");
+    } else if (currentChat.type === 'private') {
+      const chatId = [userId, currentChat.id].sort().join('_');
+      messagesRef = ref(db, `private_messages/${chatId}`);
+    } else if (currentChat.type === 'group') {
+      messagesRef = ref(db, `group_messages/${currentChat.id}`);
     }
-  });
-</script>
+    
+    onChildAdded(messagesRef, (snapshot) => {
+      const msg = snapshot.val();
+      const msgElem = document.createElement('div');
+      msgElem.className = `msg ${msg.type}-msg`;
+      
+      let displayName = msg.name;
+      if (msg.type === 'private') {
+        displayName = msg.from === userId ? 'You' : msg.name;
+      }
+      
+      msgElem.innerHTML = `
+        <strong>${displayName}:</strong> ${msg.text}
+        <span class="timestamp">${formatTime(msg.timestamp)}</span>
+      `;
+      messagesDiv.appendChild(msgElem);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    });
+  }
 
-</body>
-</html>
+  function listenForOnlineUsers() {
+    const usersDiv = document.getElementById('onlineUsers');
+    
+    onChildAdded(ref(db, "online"), (snapshot) => {
+      const id = snapshot.key;
+      const data = snapshot.val();
+      onlineUsers[id] = { id, name: data.name };
+      
+      const userElem = document.createElement('div');
+      userElem.className = 'user';
+      userElem.textContent = data.name;
+      userElem.dataset.id = id;
+      userElem.dataset.name = data.name;
+      
+      userElem.addEventListener('click', () => {
+        switchChat('private', id, data.name);
+      });
+      
+      userElem.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        showOptions(data.name, id);
+      });
+      
+      usersDiv.appendChild(userElem);
+    });
+    
+    onChildRemoved(ref(db, "online"), (snapshot) => {
+      const id = snapshot.key;
+      delete onlineUsers[id];
+      
+      const userElem = document.querySelector(`.user[data-id="${id}"]`);
+      if (userElem) userElem.remove();
+    });
+  }
+
+  function listenForGroups() {
+    // Listen for groups the user is in
+    onValue(ref(db, `user_groups/${userId}`), (snapshot) => {
+      const userGroups = snapshot.val() || {};
+      
+      // Get group details for each group
+      Object.keys(userGroups).forEach(groupId => {
+        if (!groups[groupId]) {
+          onValue(ref(db, `groups/${groupId}`), (groupSnapshot) => {
+            const groupData = groupSnapshot.val();
+            if (groupData) {
+              groups[groupId] = {
+                id: groupId,
+                name: groupData.name,
+                members: Object.keys(groupData.members)
+              };
+              
+              // Update groups list
+              updateGroupsList();
+            }
+          });
+        }
+      });
+      
+      // Remove groups that user is no longer in
+      Object.keys(groups).forEach(groupId => {
+        if (!userGroups[groupId]) {
+          delete groups[groupId];
+          updateGroupsList();
+        }
+      });
+    });
+  }
+
+  function updateGroupsList() {
+    const groupsList = document.getElementById('groupsList');
+    groupsList.innerHTML = '<strong>Your Groups:</strong>';
+    
+    Object.values(groups).forEach(group => {
+      const groupElem = document.createElement('div');
+      groupElem.className = 'group';
+      groupElem.textContent = group.name;
+      groupElem.dataset.id = group.id;
+      groupElem.dataset.name = group.name;
+      
+      groupElem.addEventListener('click', () => {
+        switchChat('group', group.id, group.name);
+      });
+      
+      groupsList.appendChild(groupElem);
+    });
+  }
+
+  function listenForTyping() {
+    onValue(ref(db, "typing"), (snapshot) => {
+      const typingData = snapshot.val() || {};
+      const typingIndicator = document.getElementById('typingIndicator');
+      let typingMessages = [];
+      
+      Object.entries(typingData).forEach(([id, data]) => {
+        if (data.isTyping) {
+          if (currentChat.type === 'private' && data.to === userId && id === currentChat.id) {
+            typingMessages.push(`${data.name} is typing...`);
+          } else if (currentChat.type === 'group' && data.groupId === currentChat.id && id !== userId) 
