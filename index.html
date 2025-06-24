@@ -1,17 +1,18 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ChatX - Neon Chat</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    body { background: #0f0f0f; color: #0ff; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+    body { background: #0f0f0f; color: #0ff; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; position: relative; }
     #bgVideo { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1; }
-    #loginPage, #chatPage { display: none; width: 100%; max-width: 800px; height: 90vh; padding: 20px; transition: all 0.3s ease; }
+    #loginPage, #chatPage { display: none; width: 100%; max-width: 800px; height: 90vh; padding: 20px; transition: all 0.3s ease; z-index: 1; }
     #loginPage.active, #chatPage.active { display: block; }
     h1 { text-align: center; color: #00ffff; text-shadow: 0 0 10px #0ff; margin-bottom: 20px; }
-    input, button, select { width: 100%; padding: 12px; margin: 10px 0; border: none; border-radius: 8px; background: #1a1a1a; color: #0ff; font-size: 1em; transition: all 0.2s ease; }
-    input:focus, button:focus, select:focus { outline: 2px solid #0ff; box-shadow: 0 0 10px #0ff; }
+    input, button { width: 100%; padding: 12px; margin: 10px 0; border: none; border-radius: 8px; background: #1a1a1a; color: #0ff; font-size: 1em; transition: all 0.2s ease; }
+    input:focus, button:focus { outline: 2px solid #0ff; box-shadow: 0 0 10px #0ff; }
     button { background: #0ff; color: #000; cursor: pointer; font-weight: bold; }
     button:hover { background: #0dd; transform: translateY(-2px); }
     button:active { transform: translateY(0); }
@@ -31,11 +32,15 @@
   <video autoplay muted loop id="bgVideo">
     <source src="bg_video.mp4" type="video/mp4">
     Your browser does not support the video tag.
-  </video>  <div id="loginPage" class="active">
+  </video>
+
+  <div id="loginPage" class="active">
     <h1>Enter Your Username</h1>
     <input type="text" id="usernameInput" placeholder="Your name..." autofocus>
-    <button onclick="enterChat()">Login</button>
-  </div>  <div id="chatPage">
+    <button id="loginButton">Login</button>
+  </div>
+
+  <div id="chatPage">
     <h1>ChatX - Neon Chat</h1>
     <div class="chat-container">
       <div class="sidebar">
@@ -53,7 +58,12 @@
         <button onclick="sendMessage()">Send</button>
       </div>
     </div>
-  </div>  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>  <script>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+  <script>
     const firebaseConfig = {
       apiKey: "AIzaSyDaZ4phogHVYs1P5FxWgZ82xWYuhn40Jsk",
       authDomain: "chatxo-273ae.firebaseapp.com",
@@ -64,7 +74,7 @@
       appId: "1:164084079084:web:db272d2eed61537fc9c8c9"
     };
 
-    const app = firebase.initializeApp(firebaseConfig);
+    firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.database();
 
@@ -74,12 +84,12 @@
       if (e.key === "Enter") sendMessage();
     });
 
-    function enterChat() {
+    document.getElementById("loginButton").addEventListener("click", () => {
       const input = document.getElementById("usernameInput");
       username = input.value.trim();
       if (!username) return alert("Please enter a username");
       auth.signInAnonymously().catch(console.error);
-    }
+    });
 
     auth.onAuthStateChanged(user => {
       if (user) {
@@ -150,5 +160,6 @@
       });
       input.value = "";
     }
-  </script></body>
+  </script>
+</body>
 </html>
